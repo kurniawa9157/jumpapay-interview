@@ -338,7 +338,9 @@ export const MenuBuilder: React.FC<Props> = ({
             Hapus Master
           </Button>
         </div>
-        <div className="px-3 py-3">
+        {/* Inner scroll — kalau menu banyak item, scroll di dalam card
+            saja, tidak push page utama jadi panjang. */}
+        <div className="max-h-[calc(100vh-280px)] overflow-y-auto px-3 py-3">
           {parsed.length === 0 ? (
             <div className="rounded-md border border-dashed border-line-sand bg-paper-cream/30 px-4 py-10 text-center text-sm text-ink-muted">
               Menu masih kosong. Tambahkan item dari panel kiri.

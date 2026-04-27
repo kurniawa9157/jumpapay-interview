@@ -435,8 +435,9 @@ const ItemsManager: React.FC<{
         </div>
       </div>
 
-      {/* Items list */}
-      <div className="px-5 py-4">
+      {/* Items list — overflow-y di-batasi supaya kalau banyak item tidak
+          bikin scroll page utama panjang. Inner card scroll independen. */}
+      <div className="max-h-[calc(100vh-280px)] overflow-y-auto px-5 py-4">
         {error && (
           <div className="mb-3 rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[13px] text-status-dangerFg">
             {error}
