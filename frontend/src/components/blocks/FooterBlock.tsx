@@ -69,12 +69,17 @@ export function FooterBlock({ props: p }: { props: Record<string, unknown> }) {
         style={{ paddingTop: padding, paddingBottom: padding }}
       >
         {widgets.length > 0 && (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div
+            className="mb-8 grid gap-8"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            }}
+          >
             {widgets.map((w, i) => (
-              <div key={i}>
+              <div key={i} className="min-w-0">
                 {w.title && (
                   <h4
-                    className="font-semibold mb-3"
+                    className="mb-3 break-words font-semibold"
                     style={{ color: p.headingColor as string }}
                   >
                     {w.title}
@@ -82,8 +87,11 @@ export function FooterBlock({ props: p }: { props: Record<string, unknown> }) {
                 )}
                 {w.content && (
                   <div
-                    className="text-sm [&_a]:underline"
-                    style={{ color: p.textColor as string }}
+                    className="text-sm break-words [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_pre]:max-w-full [&_pre]:overflow-x-auto"
+                    style={{
+                      color: p.textColor as string,
+                      overflowWrap: "anywhere",
+                    }}
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(w.content),
                     }}
