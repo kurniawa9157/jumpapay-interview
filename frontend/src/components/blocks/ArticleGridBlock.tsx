@@ -65,7 +65,7 @@ export function ArticleGridBlock({ props: p }: { props: Record<string, unknown> 
           {articles.map((article) => (
             <a
               key={article.id}
-              href={`/news/${article.slug}`}
+              href={`/p/${article.slug}`}
               className={`block rounded-lg overflow-hidden transition-all duration-300 ${hoverClass}`}
               style={{
                 backgroundColor: p.cardBg as string,

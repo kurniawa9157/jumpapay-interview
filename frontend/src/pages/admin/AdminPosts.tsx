@@ -219,6 +219,20 @@ export const AdminPosts: React.FC = () => {
   );
 };
 
+// slugify — convert title ke URL-safe slug. Strip diakritik (untuk teks ID
+// yang kebanyakan tanpa aksen tetap aman), lowercase, replace whitespace +
+// non-alfanumerik dengan dash, collapse multiple dash, trim leading/trailing.
+const slugify = (s: string): string =>
+  s
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // remove diakritik
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
 const PostFormModal: React.FC<{
   mode: "new" | "edit";
   post?: Post;
@@ -235,14 +249,28 @@ const PostFormModal: React.FC<{
     status: post?.status || "draft",
     tags: post?.tags ?? "",
   });
+  // editingSlug — kalau false, slug auto-derive dari title. Kalau true, slug
+  // di-edit manual oleh user (atau load dari existing post di edit mode).
+  const [editingSlug, setEditingSlug] = useState(mode === "edit");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
 
+  const handleTitleChange = (v: string) => {
+    setForm((f) => ({
+      ...f,
+      title: v,
+      // Auto-update slug hanya kalau user belum manual edit (new mode default).
+      slug: editingSlug ? f.slug : slugify(v),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.slug.trim()) {
-      setError("Slug dan Title wajib diisi.");
+    // Auto-derive final slug kalau user kosongin atau belum di-edit
+    const finalSlug = (form.slug || slugify(form.title)).trim();
+    if (!form.title.trim() || !finalSlug) {
+      setError("Title wajib diisi.");
       return;
     }
     setSubmitting(true);
@@ -250,7 +278,7 @@ const PostFormModal: React.FC<{
     try {
       const payload: AdminCreatePostInput = {
         ...form,
-        slug: form.slug.trim(),
+        slug: finalSlug,
         title: form.title.trim(),
         excerpt: form.excerpt?.trim() || null,
         content: form.content?.trim() || null,
@@ -284,13 +312,43 @@ const PostFormModal: React.FC<{
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          <Field label="Title" required>
+            <TextInput value={form.title} onChange={handleTitleChange} />
+          </Field>
+          <div className="flex items-center justify-between gap-2 rounded-md border border-line-sand bg-paper-cream/30 px-3 py-2 text-[12px]">
+            <span className="text-ink-muted">URL slug:</span>
+            {editingSlug ? (
+              <input
+                type="text"
+                value={form.slug}
+                onChange={(e) =>
+                  setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })
+                }
+                className="flex-1 rounded border border-line-sand bg-white px-2 py-1 font-mono text-[12px] text-brand focus:border-brand-deep focus:outline-none"
+                placeholder="auto-dari-title"
+              />
+            ) : (
+              <code className="flex-1 truncate font-mono text-brand">
+                /{form.slug || slugify(form.title) || "(otomatis dari title)"}
+              </code>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (editingSlug) {
+                  // Reset ke auto kalau klik balik
+                  setForm((f) => ({ ...f, slug: slugify(f.title) }));
+                  setEditingSlug(false);
+                } else {
+                  setEditingSlug(true);
+                }
+              }}
+              className="shrink-0 text-[11px] font-semibold text-brand-deep hover:underline"
+            >
+              {editingSlug ? "Reset auto" : "Edit"}
+            </button>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Title" required>
-              <TextInput value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
-            </Field>
-            <Field label="Slug" required hint="URL-friendly, lowercase">
-              <TextInput value={form.slug} onChange={(v) => setForm({ ...form, slug: v.toLowerCase().replace(/\s+/g, "-") })} />
-            </Field>
             <Field label="Type">
               <Select
                 value={form.type}
