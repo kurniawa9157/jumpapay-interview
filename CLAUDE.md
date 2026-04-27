@@ -147,6 +147,75 @@ docker compose --env-file backend/.env up -d
 9. **Backend `.gitignore`**: hati-hati rule `server` / `seed` yang bisa match folder `cmd/server/`. Sudah di-fix di template tapi cek kalau ada issue commit file Go.
 10. **Nginx SPA fallback**: frontend Dockerfile + nginx.conf serve `index.html` untuk path non-asset. Sudah di-setup.
 
+## Landing Page Builder + CMS (LP-1 s/d LP-4 — selesai)
+
+Sistem builder landing page dengan EAV pattern + master data reuse + media library. Diport hybrid dari `template-go` reference, adapt ke stack template-base (state-based router + custom `request<T>()` + custom Icon + IDDS).
+
+### Schema (4 tabel saja — pakai EAV via `type_template`)
+
+Migrasi 000005–000009:
+- **`tr_templates`**: id, code (unique), name, `type_template` (page/slider/menu/footer), slug (untuk type=page), is_active. Discriminator pattern — TIDAK pakai tabel terpisah untuk slider/menu/footer.
+- **`tr_template_values`**: id, template_id, key, value (TEXT/JSON), order. Key konvensi: `layout` untuk page blocks, `item_<n>` untuk slider/menu/footer items.
+- **`tt_posts`**: posts/pages content (artikel + halaman statis). Bukan EAV karena perlu query (filter status, type, sort published_at).
+- **`tt_media_files`**: file uploads (uuid-prefixed filename + mime + size). Diserve via `/uploads/<filename>` static dari backend.
+
+Plus seed 000009: insert default `homepage` template (type=page, slug='/') + grant `CONTENT_MGMT` ke `ROLE_ADMIN`.
+
+### Endpoint generic (templates filter by type)
+
+Karena slider/menu/footer pakai tabel `tr_templates` yang sama, endpoint generik — UI admin filter via `?type_template=slider`.
+
+- **Templates** `/admin/templates` (list/create/get/patch/delete), `:id/values/:key` (upsert single value mis. layout), `:id/items` (append item auto-key + reorder)
+- **Posts** `/admin/posts` (CRUD + filter `?type=post|page`)
+- **Media** `/admin/media/upload` (multipart), list, delete
+- **Public** `/public/template?slug=/`, `/public/template/:id` (untuk renderer resolve slider/menu/footer by id), `/public/posts?type=post&limit=N`
+
+Permission module: **`CONTENT_MGMT`** (single — granular per resource bisa di-add nanti kalau perlu).
+
+### Frontend — block + builder + CMS pages
+
+**Block components** ([src/components/blocks/](frontend/src/components/blocks/)) — 7 type:
+- `navbar`, `slider`, `html_block`, `image_block`, `card_grid`, `article_grid`, `footer`
+- Dispatcher [BlockRenderer.tsx](frontend/src/components/BlockRenderer.tsx) → switch on `block.type`
+- HTML sanitization via `dompurify` di `html_block`
+- Replace lucide → `Icon`, replace react-router Link → `<a>`
+
+**Builder UI 3-panel** ([src/pages/admin/landing/](frontend/src/pages/admin/landing/)):
+- `ComponentPalette` (kiri 200px, 7 tombol tambah block)
+- `BuilderCanvas` (tengah, list block + toolbar move/dup/delete + click-select)
+- `PropertiesPanel` (kanan 300px, dynamic form per block type — pakai existing formKit components)
+- `AdminLandingBuilder` toolbar (back/save/dirty indicator) + 3-panel layout
+- Hook `useBuilder` ([src/hooks/useBuilder.ts](frontend/src/hooks/useBuilder.ts)) — pure React state (components, selected, addComponent, removeComponent, duplicateComponent, updateProp, moveComponent, loadLayout, markSaved + dirty flag)
+
+**CMS pages** ([src/pages/admin/](frontend/src/pages/admin/)):
+- `AdminLanding` — list template type=page → klik "Edit Layout" switch ke builder mode (state-based, bukan router)
+- `AdminMasters` — 3 tab Sliders/Menus/Footers, master-detail. Items disimpan sebagai JSON di `tr_template_values` key=`item_<n>`. Field config per type di `ITEM_FIELDS` constant.
+- `AdminPosts` — CRUD tab post/page (article + halaman statis), slug auto-format, status badges
+- `AdminMediaLibrary` — grid view + multipart upload + copy URL helper (paste ke field gambar)
+
+**API clients** ([src/api/](frontend/src/api/)):
+- `builder.ts` — `adminListTemplates`, `adminGetTemplate`, `adminCreateTemplate`, `adminAddTemplateItem`, `adminSaveLayout` helper
+- `content.ts` — Posts CRUD + Media list/delete + `adminUploadMedia` (multipart fetch direct, bukan `request<T>` karena FormData)
+- `public.ts` — `getPublicTemplateBySlug`, `getPublicTemplateByID`, `listPublicPosts`
+
+**Public landing** — [RoleLanding.tsx](frontend/src/pages/RoleLanding.tsx) fetch homepage template (slug='/') → parse `layout` JSON → render via BlockRenderer. Fallback empty state dengan CTA Masuk.
+
+### Customize block / type baru
+
+1. Tambah type di [src/types/builder.types.ts](frontend/src/types/builder.types.ts): `ComponentType` union + `COMPONENT_DEFAULTS` + `COMPONENT_LABELS`
+2. Tambah Icon kalau perlu di [src/components/Icon.tsx](frontend/src/components/Icon.tsx)
+3. Buat `XxxBlock.tsx` di `src/components/blocks/` (props sesuai default)
+4. Register di [src/components/BlockRenderer.tsx](frontend/src/components/BlockRenderer.tsx) switch
+5. Tambah field editor di [PropertiesPanel.tsx](frontend/src/pages/admin/landing/PropertiesPanel.tsx) per type
+6. Optional: kalau pakai master data (slider/menu/footer pattern), tambah `MasterPicker` field + filter `type_template=<newtype>`
+
+### Gotcha
+
+- **EAV penyimpanan**: items SLIDER / MENU / FOOTER simpan sebagai JSON di field `value` row `tr_template_values`. Reorder pakai field `order` numeric. Append baru pakai endpoint `/items` yang auto-assign `item_<next>`.
+- **Layout simpan sebagai 1 row**: layout page blocks disimpan di 1 row `tr_template_values` (key='layout', value=JSON array). Tidak per-block. Save = upsert 1 row via `PUT :id/values/layout`.
+- **`UPLOAD_DIR` env**: backend serve `/uploads/*` dari path ini (default `./uploads/`). Production volume mount supaya persistent.
+- **Public renderer fetch**: `RoleLanding` cuma fetch 1x homepage. Block yang butuh master data (slider/menu/footer dengan `*_id` props) fetch sendiri di useEffect — bisa di-optimize jadi eager-load di v2.
+
 ## Aturan mutlak
 
 - **Selalu** verify build (`go build ./...` + `npm run build`) sebelum commit
