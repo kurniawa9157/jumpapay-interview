@@ -612,9 +612,9 @@ const ItemEditModal: React.FC<{
                 <RichTextEditor
                   value={data[f.key] || ""}
                   onChange={(html) => onChange({ ...data, [f.key]: html })}
-                  variant="minimal"
+                  variant="full"
                   placeholder={f.placeholder || "Tulis konten…"}
-                  minHeight={120}
+                  minHeight={160}
                 />
               ) : f.type === "textarea" ? (
                 <textarea
