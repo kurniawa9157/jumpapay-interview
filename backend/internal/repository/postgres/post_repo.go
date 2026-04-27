@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -113,15 +114,24 @@ type CreatePostInput struct {
 }
 
 func (r *PostRepo) Create(ctx context.Context, in CreatePostInput) (int64, error) {
+	// Hitung published_at di Go, kirim sebagai param terpisah supaya $status
+	// tidak dipakai di 2 konteks (column varchar + comparison text) yang
+	// bikin pgx PG 42P08 "inconsistent types deduced".
+	var publishedAt *time.Time
+	if in.Status == domain.PostStatusPublished {
+		now := time.Now()
+		publishedAt = &now
+	}
+	// Pass status sebagai plain string biar pgx tidak bingung dengan typed
+	// string (domain.PostStatus). Sama dengan type sebagai plain string.
+	statusStr := string(in.Status)
+	typeStr := string(in.Type)
 	var id int64
-	// Cast $7::text di CASE supaya pgx tidak bingung antara penggunaan
-	// $7 di kolom (varchar(20)) vs perbandingan teks literal — sebelumnya
-	// raise PG 42P08 "inconsistent types deduced for parameter".
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO tt_posts (slug, title, excerpt, content, cover_image, type, status, tags, author_id, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $7::text = 'published' THEN NOW() ELSE NULL END)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
-	`, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, in.Type, in.Status, in.Tags, in.AuthorID).Scan(&id)
+	`, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, typeStr, statusStr, in.Tags, in.AuthorID, publishedAt).Scan(&id)
 	return id, err
 }
 
@@ -137,19 +147,23 @@ type UpdatePostInput struct {
 }
 
 func (r *PostRepo) Update(ctx context.Context, id int64, in UpdatePostInput) error {
-	// Cast $8::text — sama dengan Create, hindari PG 42P08.
+	// Pass status sebagai plain string + tambah param boolean isPublished
+	// untuk dipakai di CASE — supaya status tidak referenced di 2 konteks.
+	statusStr := string(in.Status)
+	typeStr := string(in.Type)
+	isPublished := in.Status == domain.PostStatusPublished
 	_, err := r.db.Exec(ctx, `
 		UPDATE tt_posts
 		SET slug = $2, title = $3, excerpt = $4, content = $5, cover_image = $6,
 		    type = $7, status = $8, tags = $9,
 		    published_at = CASE
-		      WHEN $8::text = 'published' AND published_at IS NULL THEN NOW()
-		      WHEN $8::text != 'published' THEN NULL
+		      WHEN $10 AND published_at IS NULL THEN NOW()
+		      WHEN NOT $10 THEN NULL
 		      ELSE published_at
 		    END,
 		    updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
-	`, id, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, in.Type, in.Status, in.Tags)
+	`, id, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, typeStr, statusStr, in.Tags, isPublished)
 	return err
 }
 
