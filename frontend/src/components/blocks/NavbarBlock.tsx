@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Icon } from "../Icon";
 import { getPublicTemplateByID } from "../../api/public";
 import { useLandingAuth } from "../LandingAuthContext";
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
 
 const PADDING_MAP: Record<string, string> = { sm: "py-2", md: "py-3", lg: "py-4" };
 
@@ -84,14 +85,15 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
   const bgColor = (p.bgColor as string) || "#ffffff";
   const textColor = (p.textColor as string) || "#333333";
   const padding = PADDING_MAP[p.padding as string] || "py-3";
+  const width = normalizeContainerWidth(p.containerWidth);
 
   return (
     <nav
       id={(p.sectionId as string) || undefined}
-      className={`w-full ${padding} px-4 ${p.sticky ? "sticky top-0 z-50" : ""} ${p.shadow ? "shadow-md" : ""}`}
+      className={`w-full ${padding} ${p.sticky ? "sticky top-0 z-50" : ""} ${p.shadow ? "shadow-md" : ""}`}
       style={{ backgroundColor: bgColor, color: textColor }}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className={`${containerInnerClass(width)} flex items-center justify-between`}>
         <a href="/" className="flex items-center gap-2">
           {!!p.logoUrl && (
             <img src={p.logoUrl as string} alt="" style={{ width: Number(p.logoWidth) || 120 }} />

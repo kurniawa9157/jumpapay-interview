@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { BlockContainer, normalizeContainerWidth } from "./BlockContainer";
 
 const PADDING_MAP: Record<string, string> = {
   none: "0",
@@ -7,16 +8,10 @@ const PADDING_MAP: Record<string, string> = {
   large: "3rem",
   xlarge: "5rem",
 };
-const WIDTH_MAP: Record<string, string> = {
-  "container-sm": "640px",
-  container: "1024px",
-  "container-lg": "1280px",
-  "container-fluid": "100%",
-};
 
 export function HtmlBlock({ props: p }: { props: Record<string, unknown> }) {
   const padding = PADDING_MAP[p.padding as string] || "2rem";
-  const maxWidth = WIDTH_MAP[p.containerWidth as string] || "1024px";
+  const width = normalizeContainerWidth(p.containerWidth);
   const hideClass = `${p.hideOnMobile ? "hidden md:block" : ""} ${
     p.hideOnDesktop ? "md:hidden" : ""
   }`.trim();
@@ -43,13 +38,13 @@ export function HtmlBlock({ props: p }: { props: Record<string, unknown> }) {
           style={{ backgroundColor: p.overlayColor as string }}
         />
       )}
-      <div className="relative" style={{ maxWidth, margin: "0 auto", padding }}>
+      <BlockContainer width={width} className="relative" style={{ paddingTop: padding, paddingBottom: padding }}>
         <div
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize((p.html as string) || ""),
           }}
         />
-      </div>
+      </BlockContainer>
       {!!p.customCSS && <style>{p.customCSS as string}</style>}
     </section>
   );

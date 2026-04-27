@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { getPublicTemplateByID } from "../../api/public";
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
 
 const PADDING_MAP: Record<string, string> = {
   sm: "1.5rem",
@@ -39,6 +40,7 @@ export function FooterBlock({ props: p }: { props: Record<string, unknown> }) {
   }, [p.footer_id]);
 
   const padding = PADDING_MAP[p.padding as string] || "3.5rem";
+  const width = normalizeContainerWidth(p.containerWidth);
 
   return (
     <footer
@@ -65,7 +67,7 @@ export function FooterBlock({ props: p }: { props: Record<string, unknown> }) {
         />
       )}
       <div
-        className="relative max-w-7xl mx-auto px-4"
+        className={`relative ${containerInnerClass(width)}`}
         style={{ paddingTop: padding, paddingBottom: padding }}
       >
         {widgets.length > 0 && (

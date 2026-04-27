@@ -88,10 +88,35 @@ export const PropertiesPanel: React.FC<Props> = ({ component, updateProp }) => {
         {component.type.replace("_", " ")}
       </p>
       <div className="mt-4 space-y-3">
+        {/* Layout common — applies to semua block type. */}
+        <Field label="Layout Width" hint="Lebar maksimal konten di dalam block">
+          <Select
+            value={normalizeWidthValue((component.props.containerWidth as string) || "wide")}
+            onChange={(v) => updateProp("containerWidth", v)}
+            options={[
+              { value: "narrow", label: "Narrow (~768px)" },
+              { value: "boxed", label: "Boxed (~1024px)" },
+              { value: "wide", label: "Wide (~1280px)" },
+              { value: "full", label: "Full Width" },
+            ]}
+          />
+        </Field>
         <BlockForm component={component} updateProp={updateProp} />
       </div>
     </div>
   );
+};
+
+// Migrate value lama HtmlBlock (container-sm/container/container-lg/-fluid)
+// ke nilai baru (narrow/boxed/wide/full) supaya Select tidak kosong.
+const normalizeWidthValue = (raw: string): string => {
+  switch (raw) {
+    case "container-sm": return "narrow";
+    case "container":    return "boxed";
+    case "container-lg": return "wide";
+    case "container-fluid": return "full";
+    default: return raw;
+  }
 };
 
 // BlockForm — switch on type → render set of fields. Field yang sama-sama
@@ -208,18 +233,6 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
                 { value: "medium", label: "Medium" },
                 { value: "large", label: "Large" },
                 { value: "xlarge", label: "Extra Large" },
-              ]}
-            />
-          </Field>
-          <Field label="Container Width">
-            <Select
-              value={(p.containerWidth as string) || "container"}
-              onChange={setStr("containerWidth")}
-              options={[
-                { value: "container-sm", label: "Small (640px)" },
-                { value: "container", label: "Default (1024px)" },
-                { value: "container-lg", label: "Large (1280px)" },
-                { value: "container-fluid", label: "Fluid (100%)" },
               ]}
             />
           </Field>

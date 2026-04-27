@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { listPublicPosts } from "../../api/public";
 import type { Post } from "../../types/cms";
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
 
 const SHADOW_MAP: Record<string, string> = {
   none: "none",
@@ -19,6 +20,7 @@ export function ArticleGridBlock({ props: p }: { props: Record<string, unknown> 
   }, [p.limit]);
 
   const cols = Number(p.cols) || 3;
+  const width = normalizeContainerWidth(p.containerWidth);
   const hoverClass =
     p.hoverEffect === "lift"
       ? "hover:-translate-y-1"
@@ -47,7 +49,7 @@ export function ArticleGridBlock({ props: p }: { props: Record<string, unknown> 
           }}
         />
       )}
-      <div className="relative max-w-7xl mx-auto">
+      <div className={`relative ${containerInnerClass(width)}`}>
         {!!p.title && (
           <h2
             className="text-2xl font-bold mb-6"

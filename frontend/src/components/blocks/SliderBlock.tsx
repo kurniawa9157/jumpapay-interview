@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Icon } from "../Icon";
 import { getPublicTemplateByID } from "../../api/public";
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
 
 interface SlideItem {
   image_url?: string;
@@ -57,22 +58,26 @@ export function SliderBlock({ props: p }: { props: Record<string, unknown> }) {
       : p.height === "auto"
       ? "auto"
       : (p.height as string) || "400px";
+  const width = normalizeContainerWidth(p.containerWidth ?? "full");
+  // wrap dengan container kalau bukan full — supaya slider bisa boxed mid-page.
+  const wrap = (inner: React.ReactNode) =>
+    width === "full" ? <>{inner}</> : <div className={containerInnerClass(width)}>{inner}</div>;
 
   if (slides.length === 0) {
-    return (
+    return wrap(
       <div
         id={(p.sectionId as string) || undefined}
         className="bg-paper-cream flex items-center justify-center"
         style={{ height }}
       >
         <p className="text-ink-muted text-sm">Slider belum punya slide. Buat di admin → Sliders.</p>
-      </div>
+      </div>,
     );
   }
 
   const slide = slides[current];
 
-  return (
+  return wrap(
     <div
       id={(p.sectionId as string) || undefined}
       className="relative overflow-hidden"
@@ -171,6 +176,6 @@ export function SliderBlock({ props: p }: { props: Record<string, unknown> }) {
           ))}
         </div>
       )}
-    </div>
+    </div>,
   );
 }

@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import type { BentoRow } from "../../types/builder.types";
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
 
 const GAP_MAP: Record<string, string> = {
   none: "0",
@@ -17,6 +18,7 @@ const SHADOW_MAP: Record<string, string> = {
 export function CardGridBlock({ props: p }: { props: Record<string, unknown> }) {
   const rows = (p.bentoRows as BentoRow[]) || [];
   const gap = GAP_MAP[p.gap as string] || "16px";
+  const width = normalizeContainerWidth(p.containerWidth);
 
   return (
     <section
@@ -38,7 +40,7 @@ export function CardGridBlock({ props: p }: { props: Record<string, unknown> }) 
         />
       )}
       <div
-        className="relative max-w-7xl mx-auto py-8 px-4"
+        className={`relative py-8 ${containerInnerClass(width)}`}
         style={{ display: "flex", flexDirection: "column", gap }}
       >
         {rows.map((row, ri) => (

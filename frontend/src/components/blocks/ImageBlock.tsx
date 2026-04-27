@@ -1,3 +1,5 @@
+import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
+
 const SHADOW_MAP: Record<string, string> = {
   none: "none",
   sm: "0 1px 2px rgba(0,0,0,0.05)",
@@ -18,27 +20,32 @@ const ALIGN_MAP: Record<string, string> = {
 
 export function ImageBlock({ props: p }: { props: Record<string, unknown> }) {
   if (!p.src) return null;
+  const width = normalizeContainerWidth(p.containerWidth);
 
   return (
     <section
       id={(p.sectionId as string) || undefined}
-      className="py-4 px-4"
-      style={{
-        backgroundColor: p.bgColor as string,
-        display: "flex",
-        justifyContent: ALIGN_MAP[p.align as string] || "center",
-      }}
+      className="py-4"
+      style={{ backgroundColor: p.bgColor as string }}
     >
-      <img
-        src={p.src as string}
-        alt={(p.alt as string) || ""}
+      <div
+        className={containerInnerClass(width)}
         style={{
-          width: WIDTH_MAP[p.width as string] || "100%",
-          maxWidth: "100%",
-          boxShadow: SHADOW_MAP[p.shadow as string] || "none",
-          borderRadius: 8,
+          display: "flex",
+          justifyContent: ALIGN_MAP[p.align as string] || "center",
         }}
-      />
+      >
+        <img
+          src={p.src as string}
+          alt={(p.alt as string) || ""}
+          style={{
+            width: WIDTH_MAP[p.width as string] || "100%",
+            maxWidth: "100%",
+            boxShadow: SHADOW_MAP[p.shadow as string] || "none",
+            borderRadius: 8,
+          }}
+        />
+      </div>
     </section>
   );
 }

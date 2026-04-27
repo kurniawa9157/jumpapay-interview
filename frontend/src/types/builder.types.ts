@@ -55,6 +55,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     btnTextColor: '#ffffff',
     sectionId: 'header',
     menu_navbar_id: '',
+    containerWidth: 'wide',
   },
   slider: {
     slider_id: '',
@@ -69,13 +70,14 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     borderRadius: 0,
     transitionSpeed: 500,
     sectionId: '',
+    containerWidth: 'full',
   },
   html_block: {
     html: '<h2>Judul Section</h2><p>Konten Anda di sini...</p>',
     bgColor: 'rgba(255,255,255,1)',
     textColor: 'rgba(33,37,41,1)',
     padding: 'medium',
-    containerWidth: 'container',
+    containerWidth: 'boxed',
     bgImage: '',
     bgSize: 'cover',
     bgPosition: 'center',
@@ -106,6 +108,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     gap: 'medium',
     bentoRows: [{ cols: 2, cells: ['', ''] }],
     sectionId: '',
+    containerWidth: 'wide',
   },
   image_block: {
     src: '',
@@ -115,6 +118,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     bgColor: '#f8f9fa',
     shadow: 'none',
     sectionId: '',
+    containerWidth: 'wide',
   },
   article_grid: {
     title: 'Berita Terbaru',
@@ -138,6 +142,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     imageRatio: '60',
     hoverEffect: 'lift',
     sectionId: '',
+    containerWidth: 'wide',
   },
   footer: {
     footer_id: '',
@@ -160,6 +165,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     overlayOpacity: 0.6,
     bgFixed: false,
     sectionId: 'footer',
+    containerWidth: 'wide',
   },
 }
 
