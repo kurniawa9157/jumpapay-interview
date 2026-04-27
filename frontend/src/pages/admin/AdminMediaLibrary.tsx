@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@idds/react";
 import { Icon } from "../../components/Icon";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 import {
   ApiError,
   adminListMedia,
@@ -24,9 +26,12 @@ export const AdminMediaLibrary: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<MediaFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,28 +52,44 @@ export const AdminMediaLibrary: React.FC = () => {
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const list = Array.from(files);
     setUploading(true);
     setError(null);
+    setUploadProgress({ current: 0, total: list.length });
+    let success = 0;
     try {
-      for (const file of Array.from(files)) {
-        await adminUploadMedia(file);
+      for (let i = 0; i < list.length; i++) {
+        setUploadProgress({ current: i + 1, total: list.length });
+        await adminUploadMedia(list[i]);
+        success++;
       }
+      toast.success(
+        list.length === 1
+          ? `File "${list[0].name}" terunggah.`
+          : `${success} file terunggah.`,
+      );
       setReloadTick((v) => v + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload gagal.");
+      const msg = err instanceof Error ? err.message : "Upload gagal.";
+      toast.error(success > 0 ? `${success}/${list.length} berhasil. ${msg}` : msg);
+      if (success > 0) setReloadTick((v) => v + 1);
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
 
-  const handleDelete = async (m: MediaFile) => {
-    if (!confirm(`Hapus "${m.original_name || m.filename}"?`)) return;
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await adminDeleteMedia(m.id);
+      await adminDeleteMedia(confirmDelete.id);
+      toast.success("File terhapus.");
       setReloadTick((v) => v + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal menghapus.");
+      const msg = err instanceof ApiError ? err.message : "Gagal menghapus.";
+      toast.error(msg);
+      throw err;
     }
   };
 
@@ -110,7 +131,11 @@ export const AdminMediaLibrary: React.FC = () => {
             disabled={uploading}
             prefixIcon={<Icon name="upload" size={12} />}
           >
-            {uploading ? "Mengunggah…" : "Upload File"}
+            {uploading
+              ? uploadProgress
+                ? `Mengunggah ${uploadProgress.current}/${uploadProgress.total}…`
+                : "Mengunggah…"
+              : "Upload File"}
           </Button>
         </div>
       </div>
@@ -122,12 +147,40 @@ export const AdminMediaLibrary: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="rounded-[16px] border border-line-sand bg-white px-5 py-6 text-sm text-ink-muted">
-          Memuat media…
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="overflow-hidden rounded-[12px] border border-line-sand bg-white"
+            >
+              <div className="aspect-square animate-pulse bg-paper-cream/60" />
+              <div className="space-y-1.5 border-t border-line-sand px-2.5 py-2">
+                <div className="h-3 w-3/4 animate-pulse rounded bg-paper-cream/60" />
+                <div className="h-2 w-1/2 animate-pulse rounded bg-paper-cream/40" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : media.length === 0 ? (
-        <div className="rounded-[16px] border border-line-sand bg-white px-5 py-10 text-center text-sm text-ink-muted">
-          Belum ada file. Klik <strong>Upload File</strong> untuk mulai.
+        <div className="rounded-[16px] border border-dashed border-line-sand bg-white px-5 py-12 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-paper-cream text-brand-deep">
+            <Icon name="image" size={24} />
+          </div>
+          <p className="mt-3 font-serif text-[1.1rem] tracking-[-0.01em] text-brand">Media Library kosong</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Upload gambar / dokumen pertama untuk dipakai di Posts atau builder block.
+          </p>
+          <div className="mt-4">
+            <Button
+              type="button"
+              hierarchy="primary"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              prefixIcon={<Icon name="upload" size={12} />}
+            >
+              Upload File
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -161,7 +214,7 @@ export const AdminMediaLibrary: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(m)}
+                    onClick={() => setConfirmDelete(m)}
                     className="pointer-events-auto rounded-md bg-white/90 p-1.5 text-status-dangerFg backdrop-blur hover:bg-status-dangerBg"
                     aria-label="Hapus"
                     title="Hapus"
@@ -192,6 +245,23 @@ export const AdminMediaLibrary: React.FC = () => {
         Klik tombol <Icon name="copy" size={12} className="inline" /> untuk copy URL — paste ke kolom{" "}
         <strong>Cover Image URL</strong> di Posts atau ke field gambar di builder block.
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Hapus "${confirmDelete.original_name || confirmDelete.filename}"?`}
+          message={
+            <>
+              File akan dihapus permanen dari server. Pastikan tidak ada Post atau builder block yang
+              masih merujuk ke URL <code className="font-mono text-[12px]">{confirmDelete.url}</code> —
+              link akan jadi broken.
+            </>
+          }
+          confirmLabel="Hapus"
+          tone="danger"
+          onConfirm={handleConfirmDelete}
+          onClose={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 };

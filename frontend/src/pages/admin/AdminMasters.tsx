@@ -3,6 +3,8 @@ import { Button } from "@idds/react";
 import { Icon } from "../../components/Icon";
 import { Field, TextInput } from "../../components/formKit";
 import { Badge } from "../../components/data/Badge";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 import {
   ApiError,
   adminListTemplates,
@@ -89,6 +91,7 @@ const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const toast = useToast();
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -219,6 +222,7 @@ const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
           onCreated={(tpl) => {
             setCreating(false);
             setSelected(tpl);
+            toast.success(`${labels.single} "${tpl.name}" dibuat.`);
             loadList();
           }}
         />
@@ -241,8 +245,11 @@ const ItemsManager: React.FC<{
     itemID?: number;
     data: Record<string, string>;
   } | null>(null);
+  const [confirmItemDelete, setConfirmItemDelete] = useState<TemplateValue | null>(null);
+  const [confirmMasterDelete, setConfirmMasterDelete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const openNew = () =>
     setEditing({
@@ -271,8 +278,10 @@ const ItemsManager: React.FC<{
       const payload = JSON.stringify(editing.data);
       if (editing.mode === "new") {
         await adminAddTemplateItem(template.id, payload);
+        toast.success("Item ditambahkan.");
       } else if (editing.itemID) {
         await adminUpdateTemplateItem(template.id, editing.itemID, payload);
+        toast.success("Item diperbarui.");
       }
       setEditing(null);
       onItemsChanged();
@@ -283,23 +292,30 @@ const ItemsManager: React.FC<{
     }
   };
 
-  const handleDelete = async (item: TemplateValue) => {
-    if (!confirm("Hapus item ini?")) return;
+  const handleConfirmItemDelete = async () => {
+    if (!confirmItemDelete) return;
     try {
-      await adminDeleteTemplateItem(template.id, item.id);
+      await adminDeleteTemplateItem(template.id, confirmItemDelete.id);
+      toast.success("Item terhapus.");
       onItemsChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal menghapus.");
+      const msg = err instanceof ApiError ? err.message : "Gagal menghapus.";
+      toast.error(msg);
+      setError(msg);
+      throw err;
     }
   };
 
-  const handleDeleteMaster = async () => {
-    if (!confirm(`Hapus ${typeLabel} "${template.name}"? Items akan ikut terhapus.`)) return;
+  const handleConfirmMasterDelete = async () => {
     try {
       await adminDeleteTemplate(template.id);
+      toast.success(`${typeLabel} "${template.name}" terhapus.`);
       onTemplateDeleted();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal menghapus master.");
+      const msg = err instanceof ApiError ? err.message : "Gagal menghapus master.";
+      toast.error(msg);
+      setError(msg);
+      throw err;
     }
   };
 
@@ -322,7 +338,7 @@ const ItemsManager: React.FC<{
           <Button type="button" hierarchy="primary" size="sm" onClick={openNew} prefixIcon={<Icon name="plus" size={12} />}>
             Tambah Item
           </Button>
-          <Button type="button" hierarchy="secondary" size="sm" onClick={handleDeleteMaster} prefixIcon={<Icon name="trash" size={12} />}>
+          <Button type="button" hierarchy="secondary" size="sm" onClick={() => setConfirmMasterDelete(true)} prefixIcon={<Icon name="trash" size={12} />}>
             Hapus Master
           </Button>
         </div>
@@ -366,7 +382,7 @@ const ItemsManager: React.FC<{
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(item)}
+                    onClick={() => setConfirmItemDelete(item)}
                     className="rounded-md border border-status-dangerBorder bg-white p-1.5 text-status-dangerFg hover:bg-status-dangerBg"
                     aria-label="Hapus"
                   >
@@ -388,6 +404,33 @@ const ItemsManager: React.FC<{
           onSave={handleSave}
           onCancel={() => setEditing(null)}
           submitting={submitting}
+        />
+      )}
+
+      {confirmItemDelete && (
+        <ConfirmDialog
+          title="Hapus item ini?"
+          message="Item akan dihapus permanen dari master ini. Aksi tidak bisa dibatalkan."
+          confirmLabel="Hapus"
+          tone="danger"
+          onConfirm={handleConfirmItemDelete}
+          onClose={() => setConfirmItemDelete(null)}
+        />
+      )}
+
+      {confirmMasterDelete && (
+        <ConfirmDialog
+          title={`Hapus ${typeLabel} "${template.name}"?`}
+          message={
+            <>
+              Master ini beserta <strong>{items.length} item</strong> di dalamnya akan dihapus permanen.
+              Block di builder yang memakai ID master ini akan jadi broken.
+            </>
+          }
+          confirmLabel="Hapus Master"
+          tone="danger"
+          onConfirm={handleConfirmMasterDelete}
+          onClose={() => setConfirmMasterDelete(false)}
         />
       )}
     </div>

@@ -97,7 +97,7 @@ export const BuilderCanvas: React.FC<Props> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Hapus block ini?")) onRemove(comp.id);
+                    onRemove(comp.id);
                   }}
                   className="rounded p-1 text-status-dangerFg hover:bg-status-dangerBg"
                   aria-label="Hapus"

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@idds/react";
 import { Icon } from "../../../components/Icon";
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { useToast } from "../../../components/Toast";
 import {
   ApiError,
   adminGetTemplate,
   adminSaveLayout,
 } from "../../../api";
 import type { BuilderComponent } from "../../../types/builder.types";
+import { COMPONENT_LABELS } from "../../../types/builder.types";
 import { useBuilder } from "../../../hooks/useBuilder";
 import { ComponentPalette } from "./ComponentPalette";
 import { BuilderCanvas } from "./BuilderCanvas";
@@ -39,7 +42,13 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [confirmBack, setConfirmBack] = useState(false);
+  const toast = useToast();
+
+  const pendingRemove = pendingRemoveId
+    ? components.find((c) => c.id === pendingRemoveId) || null
+    : null;
 
   // Load layout dari template_values key='layout'.
   useEffect(() => {
@@ -74,16 +83,24 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
   const handleSave = async () => {
     setSaving(true);
     setError(null);
-    setToast(null);
     try {
       await adminSaveLayout(templateID, components);
       markSaved();
-      setToast("Layout tersimpan.");
-      setTimeout(() => setToast(null), 3000);
+      toast.success("Layout tersimpan.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal menyimpan layout.");
+      const msg = err instanceof ApiError ? err.message : "Gagal menyimpan layout.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (isDirty) {
+      setConfirmBack(true);
+    } else {
+      onBack();
     }
   };
 
@@ -110,7 +127,7 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
     <div className="flex h-[calc(100vh-160px)] flex-col overflow-hidden rounded-[12px] border border-line-sand bg-white">
       {/* Toolbar */}
       <div className="flex items-center gap-3 border-b border-line-sand bg-paper-cream/30 px-4 py-2.5">
-        <Button type="button" hierarchy="tertiary" size="sm" onClick={onBack} prefixIcon={<Icon name="chevronLeft" size={12} />}>
+        <Button type="button" hierarchy="tertiary" size="sm" onClick={handleBack} prefixIcon={<Icon name="chevronLeft" size={12} />}>
           Kembali
         </Button>
         <div className="min-w-0 flex-1">
@@ -118,7 +135,6 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
           {isDirty && <span className="ml-2 text-[11px] text-status-warnFg">● Unsaved</span>}
         </div>
         {error && <span className="text-[11px] text-status-dangerFg">{error}</span>}
-        {toast && <span className="text-[11px] text-status-successFg">{toast}</span>}
         <Button
           type="button"
           hierarchy="primary"
@@ -138,12 +154,46 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
           components={components}
           selectedId={selectedId}
           onSelect={setSelectedId}
-          onRemove={removeComponent}
+          onRemove={(id) => setPendingRemoveId(id)}
           onDuplicate={duplicateComponent}
           onMove={moveComponent}
         />
         <PropertiesPanel component={selected} updateProp={updateProp} />
       </div>
+
+      {pendingRemove && (
+        <ConfirmDialog
+          title={`Hapus block "${COMPONENT_LABELS[pendingRemove.type]}"?`}
+          message="Block beserta seluruh konfigurasi-nya akan dihapus dari layout. Aksi tidak bisa di-undo (perlu ulang dari awal kalau salah)."
+          confirmLabel="Hapus Block"
+          tone="danger"
+          onConfirm={() => {
+            removeComponent(pendingRemove.id);
+            toast.success("Block dihapus.");
+          }}
+          onClose={() => setPendingRemoveId(null)}
+        />
+      )}
+
+      {confirmBack && (
+        <ConfirmDialog
+          title="Tinggalkan tanpa simpan?"
+          message={
+            <>
+              Ada perubahan yang <strong>belum disimpan</strong>. Kalau lanjut kembali, semua perubahan
+              di canvas akan hilang.
+            </>
+          }
+          confirmLabel="Tinggalkan"
+          cancelLabel="Tetap di sini"
+          tone="warn"
+          onConfirm={() => {
+            setConfirmBack(false);
+            onBack();
+          }}
+          onClose={() => setConfirmBack(false)}
+        />
+      )}
     </div>
   );
 };

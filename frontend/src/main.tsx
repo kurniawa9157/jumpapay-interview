@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/Toast'
 import { applyBrand, DEFAULT_BRAND, isValidEppatBrand } from './theme'
 import { getSystemTheme } from './api'
 import '@idds/styles'
@@ -27,7 +28,9 @@ hydrateTheme().finally(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </ErrorBoundary>
     </React.StrictMode>,
   )

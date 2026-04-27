@@ -3,6 +3,8 @@ import { Button } from "@idds/react";
 import { Icon } from "../../components/Icon";
 import { Field, TextInput, Select } from "../../components/formKit";
 import { Badge } from "../../components/data/Badge";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 import {
   ApiError,
   adminListPosts,
@@ -22,7 +24,9 @@ export const AdminPosts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ mode: "new" | "edit"; post?: Post } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Post | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,13 +49,16 @@ export const AdminPosts: React.FC = () => {
     load();
   }, [load, reloadTick]);
 
-  const handleDelete = async (p: Post) => {
-    if (!confirm(`Hapus "${p.title}"?`)) return;
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await adminDeletePost(p.id);
+      await adminDeletePost(confirmDelete.id);
+      toast.success(`Post "${confirmDelete.title}" terhapus.`);
       setReloadTick((v) => v + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal menghapus.");
+      const msg = err instanceof ApiError ? err.message : "Gagal menghapus.";
+      toast.error(msg);
+      throw err; // biar dialog tetap terbuka
     }
   };
 
@@ -154,7 +161,7 @@ export const AdminPosts: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(p)}
+                        onClick={() => setConfirmDelete(p)}
                         className="rounded-md border border-status-dangerBorder bg-white p-1.5 text-status-dangerFg hover:bg-status-dangerBg"
                         aria-label="Hapus"
                       >
@@ -174,10 +181,36 @@ export const AdminPosts: React.FC = () => {
           mode={editing.mode}
           post={editing.post}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onSaved={(saved) => {
+            toast.success(
+              editing.mode === "new"
+                ? `Post "${saved.title}" dibuat.`
+                : `Post "${saved.title}" diperbarui.`,
+            );
             setEditing(null);
             setReloadTick((v) => v + 1);
           }}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Hapus "${confirmDelete.title}"?`}
+          message={
+            <>
+              Aksi ini tidak bisa dibatalkan. Post akan dihapus permanen dari database
+              {confirmDelete.status === "published" && (
+                <>
+                  {" "}dan <strong>tidak akan muncul lagi</strong> di public landing
+                </>
+              )}
+              .
+            </>
+          }
+          confirmLabel="Hapus"
+          tone="danger"
+          onConfirm={handleConfirmDelete}
+          onClose={() => setConfirmDelete(null)}
         />
       )}
     </div>
@@ -188,7 +221,7 @@ const PostFormModal: React.FC<{
   mode: "new" | "edit";
   post?: Post;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: { title: string }) => void;
 }> = ({ mode, post, onClose, onSaved }) => {
   const [form, setForm] = useState<AdminCreatePostInput>({
     slug: post?.slug || "",
@@ -223,7 +256,7 @@ const PostFormModal: React.FC<{
       };
       if (mode === "new") await adminCreatePost(payload);
       else if (post) await adminUpdatePost(post.id, payload);
-      onSaved();
+      onSaved({ title: payload.title });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Gagal menyimpan post.");
     } finally {
