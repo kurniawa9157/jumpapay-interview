@@ -1,19 +1,64 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
 import { BlockRenderer } from "../components/BlockRenderer";
+import {
+  LandingAuthProvider,
+  type LandingAuthState,
+} from "../components/LandingAuthContext";
 import { getPublicTemplateBySlug, ApiError } from "../api";
 import type { BuilderComponent } from "../types/builder.types";
+import type { MeResponse } from "../api";
 
 interface Props {
+  me: MeResponse | null;
   onRequestLogin: () => void;
+  onGoAdmin: () => void;
+  onAccount: () => void;
+  onLogout: () => void;
 }
+
+const hasAnyAdminPermission = (me: MeResponse): boolean => {
+  const perms = me.permissions || {};
+  for (const moduleActions of Object.values(perms)) {
+    if (!moduleActions) continue;
+    for (const allowed of Object.values(moduleActions)) {
+      if (allowed) return true;
+    }
+  }
+  return false;
+};
+
+const displayNameOf = (me: MeResponse): string => {
+  const f = me.user.first_name || "";
+  const l = me.user.last_name || "";
+  return [f, l].filter(Boolean).join(" ").trim() || f || "Pengguna";
+};
 
 // Landing page — fetch template homepage (slug='/') + render dynamic via
 // BlockRenderer. Kalau belum ada layout (template baru di-seed dengan
 // layout=[]), tampilkan empty state dengan CTA Masuk.
-export const RoleLanding: React.FC<Props> = ({ onRequestLogin }) => {
+export const RoleLanding: React.FC<Props> = ({
+  me,
+  onRequestLogin,
+  onGoAdmin,
+  onAccount,
+  onLogout,
+}) => {
   const [layout, setLayout] = useState<BuilderComponent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const auth = useMemo<LandingAuthState>(
+    () => ({
+      loggedIn: !!me,
+      canEnterAdmin: !!me && (me.user.is_admin || hasAnyAdminPermission(me)),
+      displayName: me ? displayNameOf(me) : "",
+      onLogin: onRequestLogin,
+      onGoAdmin,
+      onAccount,
+      onLogout,
+    }),
+    [me, onRequestLogin, onGoAdmin, onAccount, onLogout],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -63,29 +108,42 @@ export const RoleLanding: React.FC<Props> = ({ onRequestLogin }) => {
     );
   }
 
+  // FloatingAuthButton hanya muncul kalau layout TIDAK punya navbar block —
+  // supaya tidak duplicate dengan tombol login/dashboard di NavbarBlock.
+  const hasNavbar = layout.some((b) => b.type === "navbar");
+
   return (
-    <div className="min-h-screen bg-paper">
-      <BlockRenderer layout={layout} />
-      <FloatingLoginButton onClick={onRequestLogin} />
-    </div>
+    <LandingAuthProvider value={auth}>
+      <div className="min-h-screen bg-paper">
+        <BlockRenderer layout={layout} />
+        {!hasNavbar && <FloatingAuthButton auth={auth} />}
+      </div>
+    </LandingAuthProvider>
   );
 };
 
-// FloatingLoginButton — selalu muncul saat belum login supaya admin tetap
-// punya akses login meski layout custom tidak sertakan tombol/link Masuk.
-// Posisi fixed top-right, subtle tapi visible. Boleh dihilangkan kalau
-// project sudah pasti punya login link di navbar.
-const FloatingLoginButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="fixed right-4 top-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-deep/95 px-4 py-2 text-[12px] font-semibold text-white shadow-[0_8px_22px_rgba(15,30,61,0.25)] backdrop-blur transition hover:bg-brand-deep hover:shadow-[0_10px_28px_rgba(15,30,61,0.35)] sm:right-6 sm:top-6"
-    aria-label="Masuk ke akun admin"
-  >
-    <Icon name="user" size={12} />
-    Masuk
-  </button>
-);
+// FloatingAuthButton — fallback saat layout tidak include navbar block.
+// Posisi fixed top-right, subtle tapi visible. Render label sesuai state:
+//   - belum login → "Masuk"
+//   - login + bisa akses admin → "Dasbor"
+//   - login tapi user biasa → "Akun Saya"
+const FloatingAuthButton: React.FC<{ auth: LandingAuthState }> = ({ auth }) => {
+  const { loggedIn, canEnterAdmin, onLogin, onGoAdmin, onAccount } = auth;
+  const label = !loggedIn ? "Masuk" : canEnterAdmin ? "Dasbor" : "Akun Saya";
+  const icon: "user" | "dashboard" = canEnterAdmin && loggedIn ? "dashboard" : "user";
+  const handle = !loggedIn ? onLogin : canEnterAdmin ? onGoAdmin : onAccount;
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      className="fixed right-4 top-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-deep/95 px-4 py-2 text-[12px] font-semibold text-white shadow-[0_8px_22px_rgba(15,30,61,0.25)] backdrop-blur transition hover:bg-brand-deep hover:shadow-[0_10px_28px_rgba(15,30,61,0.35)] sm:right-6 sm:top-6"
+      aria-label={label}
+    >
+      <Icon name={icon} size={12} />
+      {label}
+    </button>
+  );
+};
 
 // EmptyLanding — fallback ketika belum ada layout. Tetap functional dengan
 // hero + CTA Masuk. Admin bisa replace via builder.

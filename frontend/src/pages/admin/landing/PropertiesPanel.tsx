@@ -85,6 +85,11 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
           </Field>
           <Toggle label="Sticky" checked={!!p.sticky} onChange={setBool("sticky", !!p.sticky)} />
           <Toggle label="Shadow" checked={!!p.shadow} onChange={setBool("shadow", !!p.shadow)} />
+          <Toggle
+            label="Tombol Masuk / Dasbor (otomatis)"
+            checked={p.showAuthButton !== false}
+            onChange={setBool("showAuthButton", p.showAuthButton !== false)}
+          />
           <Toggle label="Show CTA Button" checked={!!p.showCtaButton} onChange={setBool("showCtaButton", !!p.showCtaButton)} />
           {!!p.showCtaButton && (
             <>

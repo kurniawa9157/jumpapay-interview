@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Icon } from "../Icon";
 import { getPublicTemplateByID } from "../../api/public";
+import { useLandingAuth } from "../LandingAuthContext";
 
 const PADDING_MAP: Record<string, string> = { sm: "py-2", md: "py-3", lg: "py-4" };
 
@@ -13,6 +14,24 @@ interface MenuItem {
 export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const auth = useLandingAuth();
+  // Default true — admin bisa matikan via properties (showAuthButton=false)
+  // kalau ingin pasang link login manual di menu items.
+  const showAuthButton = p.showAuthButton !== false;
+
+  const authLabel = !auth
+    ? "Masuk"
+    : !auth.loggedIn
+    ? "Masuk"
+    : auth.canEnterAdmin
+    ? "Dasbor"
+    : "Akun Saya";
+  const authHandler = () => {
+    if (!auth) return;
+    if (!auth.loggedIn) auth.onLogin();
+    else if (auth.canEnterAdmin) auth.onGoAdmin();
+    else auth.onAccount();
+  };
 
   useEffect(() => {
     const menuId = p.menu_navbar_id as string | undefined;
@@ -90,6 +109,22 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
               Contact
             </button>
           )}
+          {showAuthButton && (
+            <button
+              type="button"
+              onClick={authHandler}
+              className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor:
+                  (p.btnBgColor as string) || textColor,
+                color:
+                  (p.btnTextColor as string) || bgColor,
+              }}
+            >
+              <Icon name={auth?.loggedIn && auth.canEnterAdmin ? "dashboard" : "user"} size={13} />
+              {authLabel}
+            </button>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -119,6 +154,25 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
               {item.label}
             </a>
           ))}
+          {showAuthButton && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                authHandler();
+              }}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor:
+                  (p.btnBgColor as string) || textColor,
+                color:
+                  (p.btnTextColor as string) || bgColor,
+              }}
+            >
+              <Icon name={auth?.loggedIn && auth.canEnterAdmin ? "dashboard" : "user"} size={13} />
+              {authLabel}
+            </button>
+          )}
         </div>
       )}
     </nav>

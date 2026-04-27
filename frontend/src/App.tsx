@@ -124,7 +124,15 @@ function App() {
     return <LoginPage onBack={goLanding} onSuccess={handleLoginSuccess} />;
   }
 
-  return <RoleLanding onRequestLogin={() => setView("login")} />;
+  return (
+    <RoleLanding
+      me={me}
+      onRequestLogin={() => setView("login")}
+      onGoAdmin={() => setView("admin")}
+      onAccount={() => setView("account")}
+      onLogout={handleLogout}
+    />
+  );
 }
 
 export default App;
