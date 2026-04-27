@@ -22,6 +22,9 @@ const (
 	ModulePermissionMgmt = "PERMISSION_MGMT"
 	ModuleSystemSettings = "SYSTEM_SETTINGS"
 	ModuleAuditLog       = "AUDIT_LOG"
+	// CONTENT_MGMT meliputi templates (page/slider/menu/footer), posts, dan media.
+	// Granular split (TEMPLATE/POST/MEDIA) bisa di-add nanti kalau perlu.
+	ModuleContentMgmt = "CONTENT_MGMT"
 )
 
 // AllModules adalah daftar semua module code yang valid.
@@ -33,6 +36,7 @@ func AllModules() []string {
 		ModulePermissionMgmt,
 		ModuleSystemSettings,
 		ModuleAuditLog,
+		ModuleContentMgmt,
 	}
 }
 

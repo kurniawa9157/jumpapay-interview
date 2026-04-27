@@ -18,6 +18,7 @@ import (
 	"github.com/kurniawa9157/template-base/internal/repository/postgres"
 	"github.com/kurniawa9157/template-base/internal/service/account"
 	"github.com/kurniawa9157/template-base/internal/service/auth"
+	"github.com/kurniawa9157/template-base/internal/service/content"
 	"github.com/kurniawa9157/template-base/internal/service/permission"
 	"github.com/kurniawa9157/template-base/internal/service/system"
 	userservice "github.com/kurniawa9157/template-base/internal/service/user"
@@ -35,6 +36,9 @@ type Deps struct {
 	UserService       *userservice.Service
 	AccountService    *account.Service
 	SystemService     *system.Service
+	TemplateService   *content.TemplateService
+	PostService       *content.PostService
+	MediaService      *content.MediaService
 	UserRepo          *postgres.UserRepo
 	RoleRepo          *postgres.RoleRepo
 	PermissionRepo    *postgres.PermissionRepo
@@ -106,6 +110,10 @@ func NewRouter(d Deps) *gin.Engine {
 	statsHandler := handler.NewAdminStatsHandler(d.DB, d.UserRepo)
 	accountHandler := handler.NewAccountHandler(d.AccountService)
 	systemHandler := handler.NewSystemHandler(d.SystemService)
+	templateHandler := handler.NewTemplateHandler(d.TemplateService)
+	postHandler := handler.NewPostHandler(d.PostService)
+	mediaHandler := handler.NewMediaHandler(d.MediaService)
+	publicHandler := handler.NewPublicHandler(d.TemplateService, d.PostService)
 
 	// --- /system group (public read — dipakai hydrate tema di boot app) ---
 	systemGroup := v1.Group("/system")
@@ -113,6 +121,18 @@ func NewRouter(d Deps) *gin.Engine {
 		systemGroup.GET("/theme", systemHandler.GetTheme)
 		systemGroup.GET("/snapshot", systemHandler.GetSnapshot)
 	}
+
+	// --- /public group (no auth) — hydrate landing + posts public ---
+	publicGroup := v1.Group("/public")
+	{
+		publicGroup.GET("/template", publicHandler.GetTemplateBySlug)
+		publicGroup.GET("/template/:id", publicHandler.GetTemplateByID)
+		publicGroup.GET("/posts", publicHandler.ListPosts)
+		publicGroup.GET("/posts/:slug", publicHandler.GetPost)
+	}
+
+	// Static files — serve uploads dari UPLOAD_DIR (default ./uploads).
+	r.Static("/uploads", d.Cfg.UploadDir)
 
 	// --- /auth group ---
 	authGroup := v1.Group("/auth")
@@ -196,6 +216,75 @@ func NewRouter(d Deps) *gin.Engine {
 			sys.PUT("/settings",
 				middleware.RequirePermission(d.PermissionChecker, domain.ModuleSystemSettings, domain.ActionEdit),
 				systemHandler.BulkUpdateSettings)
+		}
+
+		// Templates (page/slider/menu/footer) + values + items.
+		templates := adminGroup.Group("/templates")
+		{
+			templates.GET("",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionView),
+				templateHandler.List)
+			templates.GET("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionView),
+				templateHandler.Get)
+			templates.POST("",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionCreate),
+				templateHandler.Create)
+			templates.PATCH("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				templateHandler.Update)
+			templates.DELETE("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionDelete),
+				templateHandler.Delete)
+			templates.PUT("/:id/values/:key",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				templateHandler.SetValue)
+			templates.POST("/:id/items",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				templateHandler.AddItem)
+			templates.PUT("/:id/items/reorder",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				templateHandler.ReorderItems)
+			templates.PUT("/:id/items/:itemId",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				templateHandler.UpdateItem)
+			templates.DELETE("/:id/items/:itemId",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionDelete),
+				templateHandler.DeleteItem)
+		}
+
+		// Posts (article/news/page).
+		posts := adminGroup.Group("/posts")
+		{
+			posts.GET("",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionView),
+				postHandler.List)
+			posts.GET("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionView),
+				postHandler.Get)
+			posts.POST("",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionCreate),
+				postHandler.Create)
+			posts.PATCH("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				postHandler.Update)
+			posts.DELETE("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionDelete),
+				postHandler.Delete)
+		}
+
+		// Media library + upload.
+		media := adminGroup.Group("/media")
+		{
+			media.GET("",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionView),
+				mediaHandler.List)
+			media.POST("/upload",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				mediaHandler.Upload)
+			media.DELETE("/:id",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionDelete),
+				mediaHandler.Delete)
 		}
 	}
 

@@ -32,3 +32,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Uploaded media (per-deployment, jangan commit). .gitkeep tetap.
+uploads/*
+!uploads/.gitkeep

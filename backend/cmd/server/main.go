@@ -16,6 +16,7 @@ import (
 	"github.com/kurniawa9157/template-base/internal/repository/postgres"
 	"github.com/kurniawa9157/template-base/internal/service/account"
 	"github.com/kurniawa9157/template-base/internal/service/auth"
+	"github.com/kurniawa9157/template-base/internal/service/content"
 	"github.com/kurniawa9157/template-base/internal/service/permission"
 	"github.com/kurniawa9157/template-base/internal/service/system"
 	userservice "github.com/kurniawa9157/template-base/internal/service/user"
@@ -61,6 +62,9 @@ func main() {
 	activityRepo := postgres.NewActivityRepo(pool)
 	refreshRepo := postgres.NewRefreshTokenRepo(pool)
 	sysSettingsRepo := postgres.NewSystemSettingsRepo(pool)
+	templateRepo := postgres.NewTemplateRepo(pool)
+	postRepo := postgres.NewPostRepo(pool)
+	mediaRepo := postgres.NewMediaRepo(pool)
 
 	// Services
 	jwtSvc := auth.NewJWTService(cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -70,6 +74,9 @@ func main() {
 	userSvc := userservice.NewService(userRepo, contactRepo, pwRepo, roleRepo, refreshRepo)
 	accountSvc := account.NewService(userRepo, contactRepo, pwRepo, roleRepo, refreshRepo)
 	systemSvc := system.NewService(sysSettingsRepo)
+	templateSvc := content.NewTemplateService(templateRepo)
+	postSvc := content.NewPostService(postRepo)
+	mediaSvc := content.NewMediaService(mediaRepo, cfg.UploadDir, cfg.UploadMaxSizeMB)
 
 	// Router
 	router := httpx.NewRouter(httpx.Deps{
@@ -83,6 +90,9 @@ func main() {
 		UserService:       userSvc,
 		AccountService:    accountSvc,
 		SystemService:     systemSvc,
+		TemplateService:   templateSvc,
+		PostService:       postSvc,
+		MediaService:      mediaSvc,
 		UserRepo:          userRepo,
 		RoleRepo:          roleRepo,
 		PermissionRepo:    permRepo,

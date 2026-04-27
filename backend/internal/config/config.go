@@ -42,6 +42,10 @@ type Config struct {
 	// Rate limit
 	RateLimitPerMinute      int `env:"RATE_LIMIT_PER_MINUTE" envDefault:"60"`
 	LoginRateLimitPerMinute int `env:"LOGIN_RATE_LIMIT_PER_MINUTE" envDefault:"10"`
+
+	// Media upload
+	UploadDir         string `env:"UPLOAD_DIR" envDefault:"./uploads"`
+	UploadMaxSizeMB   int    `env:"UPLOAD_MAX_SIZE_MB" envDefault:"5"`
 }
 
 // Load membaca .env (opsional) lalu parse env vars ke struct.
