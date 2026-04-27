@@ -2,12 +2,60 @@ import React, { useEffect, useState } from "react";
 import { Field, TextInput, Select } from "../../../components/formKit";
 import { Icon } from "../../../components/Icon";
 import { RichTextEditor } from "../../../components/RichTextEditor";
+import { MediaPicker } from "../../../components/MediaPicker";
 import {
   type BuilderComponent,
   type BentoRow,
 } from "../../../types/builder.types";
 import { adminListTemplates } from "../../../api/builder";
 import type { Template } from "../../../types/cms";
+
+// ImageField — input URL + tombol "Pilih" yang buka MediaPicker + preview
+// thumbnail. Reusable di sini untuk image_block src + navbar logoUrl.
+const ImageField: React.FC<{
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  previewSize?: "sm" | "md";
+}> = ({ label, hint, value, onChange, placeholder, previewSize = "md" }) => {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const previewClass = previewSize === "sm" ? "h-16" : "h-28";
+  return (
+    <Field label={label} hint={hint}>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <TextInput
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder || "/uploads/foo.jpg"}
+          />
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-line-sand bg-white px-3 text-[12px] font-semibold text-brand-deep transition hover:border-brand-deep"
+            title="Pilih dari Media Library"
+          >
+            <Icon name="image" size={12} /> Pilih
+          </button>
+        </div>
+        {value && (
+          <div className="overflow-hidden rounded-md border border-line-sand">
+            <img src={value} alt="" className={`w-full ${previewClass} object-cover`} />
+          </div>
+        )}
+      </div>
+      {pickerOpen && (
+        <MediaPicker
+          mimePrefix="image/"
+          onSelect={(m) => onChange(m.url)}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </Field>
+  );
+};
 
 interface Props {
   component: BuilderComponent | null;
@@ -63,9 +111,14 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
           <Field label="Brand Title">
             <TextInput value={(p.brandTitle as string) || ""} onChange={setStr("brandTitle")} placeholder="Brand" />
           </Field>
-          <Field label="Logo URL" hint="Upload via Media Library, paste URL hasil di sini">
-            <TextInput value={(p.logoUrl as string) || ""} onChange={setStr("logoUrl")} placeholder="/uploads/logo.png" />
-          </Field>
+          <ImageField
+            label="Logo"
+            hint="Pilih dari Media Library atau paste URL"
+            value={(p.logoUrl as string) || ""}
+            onChange={setStr("logoUrl")}
+            placeholder="/uploads/logo.png"
+            previewSize="sm"
+          />
           <MasterPicker label="Menu Navbar" type="menu" value={(p.menu_navbar_id as string) || ""} onChange={setStr("menu_navbar_id")} />
           <ColorField label="Background Color" value={(p.bgColor as string) || ""} onChange={setStr("bgColor")} />
           <ColorField label="Text Color" value={(p.textColor as string) || ""} onChange={setStr("textColor")} />
@@ -217,10 +270,14 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
     case "image_block":
       return (
         <>
-          <Field label="Image URL">
-            <TextInput value={(p.src as string) || ""} onChange={setStr("src")} placeholder="/uploads/foo.jpg" />
-          </Field>
-          <Field label="Alt Text">
+          <ImageField
+            label="Gambar"
+            hint="Pilih dari Media Library atau paste URL"
+            value={(p.src as string) || ""}
+            onChange={setStr("src")}
+            placeholder="/uploads/foo.jpg"
+          />
+          <Field label="Alt Text" hint="Deskripsi gambar untuk accessibility / SEO">
             <TextInput value={(p.alt as string) || ""} onChange={setStr("alt")} placeholder="Deskripsi singkat" />
           </Field>
           <Field label="Width">
