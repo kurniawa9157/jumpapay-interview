@@ -10,6 +10,7 @@ export interface AuthenticatedShellProps {
   user: { name: string; role: string; avatarInitial: string };
   onLogout: () => void;
   onOpenAccount?: () => void;
+  onViewLanding?: () => void;
   pageTitle: string;
   pageSubtitle?: string;
   brandTitle: string;
@@ -25,6 +26,7 @@ export const AuthenticatedShell: React.FC<AuthenticatedShellProps> = ({
   user,
   onLogout,
   onOpenAccount,
+  onViewLanding,
   pageTitle,
   pageSubtitle,
   brandTitle,
@@ -79,6 +81,7 @@ export const AuthenticatedShell: React.FC<AuthenticatedShellProps> = ({
           variant={variant}
           onLogout={onLogout}
           onOpenAccount={onOpenAccount}
+          onViewLanding={onViewLanding}
           onToggleMobileNav={() => setMobileOpen(true)}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

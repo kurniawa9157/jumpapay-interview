@@ -9,10 +9,11 @@ export interface TopbarProps {
   variant: "admin" | "ppat-user";
   onLogout: () => void;
   onOpenAccount?: () => void;
+  onViewLanding?: () => void;
   onToggleMobileNav: () => void;
 }
 
-export const Topbar: React.FC<TopbarProps> = ({ pageTitle, pageSubtitle, user, variant, onLogout, onOpenAccount, onToggleMobileNav }) => (
+export const Topbar: React.FC<TopbarProps> = ({ pageTitle, pageSubtitle, user, variant, onLogout, onOpenAccount, onViewLanding, onToggleMobileNav }) => (
   <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line-sand bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
     <button
       type="button"
@@ -27,6 +28,18 @@ export const Topbar: React.FC<TopbarProps> = ({ pageTitle, pageSubtitle, user, v
       <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">{pageSubtitle || "Dasbor"}</div>
       <h1 className="truncate font-serif text-[1.25rem] tracking-[-0.02em] text-brand sm:text-[1.4rem]">{pageTitle}</h1>
     </div>
+
+    {onViewLanding && (
+      <button
+        type="button"
+        onClick={onViewLanding}
+        className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-line-sand bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-tertiary transition hover:border-brand-deep hover:text-brand-deep"
+        title="Lihat landing page (sudut user)"
+      >
+        <Icon name="eye" size={12} />
+        Lihat Landing
+      </button>
+    )}
 
     <UserChip
       name={user.name}

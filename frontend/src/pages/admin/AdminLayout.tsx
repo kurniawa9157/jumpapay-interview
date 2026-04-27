@@ -18,6 +18,7 @@ interface Props {
   isSuperAdmin: boolean;
   onExit: () => void;
   onOpenAccount?: () => void;
+  onViewLanding?: () => void;
 }
 
 type AdminPage =
@@ -57,6 +58,7 @@ export const AdminLayout: React.FC<Props> = ({
   isSuperAdmin,
   onExit,
   onOpenAccount,
+  onViewLanding,
 }) => {
   const navItems = useMemo<SidebarNavItem[]>(() => {
     const items: SidebarNavItem[] = [
@@ -107,6 +109,7 @@ export const AdminLayout: React.FC<Props> = ({
       user={user}
       onLogout={onExit}
       onOpenAccount={onOpenAccount}
+      onViewLanding={onViewLanding}
       pageTitle={meta.title}
       pageSubtitle={meta.subtitle}
       brandTitle="App Template"

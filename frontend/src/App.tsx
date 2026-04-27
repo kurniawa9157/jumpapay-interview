@@ -198,6 +198,7 @@ function App() {
           isSuperAdmin={me.user.is_admin}
           onExit={handleLogout}
           onOpenAccount={() => setView("account")}
+          onViewLanding={() => setView("landing")}
         />
       );
     }
