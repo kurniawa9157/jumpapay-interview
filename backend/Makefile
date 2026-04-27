@@ -5,7 +5,7 @@ DB_USER ?= postgres
 DB_PASSWORD ?= changeme
 DB_HOST ?= 127.0.0.1
 DB_PORT ?= 5432
-DB_NAME ?= eppat
+DB_NAME ?= template_base
 
 help:
 	@echo "Target yang tersedia:"
