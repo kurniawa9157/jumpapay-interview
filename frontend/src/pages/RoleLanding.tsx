@@ -66,9 +66,26 @@ export const RoleLanding: React.FC<Props> = ({ onRequestLogin }) => {
   return (
     <div className="min-h-screen bg-paper">
       <BlockRenderer layout={layout} />
+      <FloatingLoginButton onClick={onRequestLogin} />
     </div>
   );
 };
+
+// FloatingLoginButton — selalu muncul saat belum login supaya admin tetap
+// punya akses login meski layout custom tidak sertakan tombol/link Masuk.
+// Posisi fixed top-right, subtle tapi visible. Boleh dihilangkan kalau
+// project sudah pasti punya login link di navbar.
+const FloatingLoginButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="fixed right-4 top-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-deep/95 px-4 py-2 text-[12px] font-semibold text-white shadow-[0_8px_22px_rgba(15,30,61,0.25)] backdrop-blur transition hover:bg-brand-deep hover:shadow-[0_10px_28px_rgba(15,30,61,0.35)] sm:right-6 sm:top-6"
+    aria-label="Masuk ke akun admin"
+  >
+    <Icon name="user" size={12} />
+    Masuk
+  </button>
+);
 
 // EmptyLanding — fallback ketika belum ada layout. Tetap functional dengan
 // hero + CTA Masuk. Admin bisa replace via builder.
