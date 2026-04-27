@@ -1,0 +1,524 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { Button } from "@idds/react";
+import { Icon } from "../../components/Icon";
+import { Field, TextInput } from "../../components/formKit";
+import { Badge } from "../../components/data/Badge";
+import {
+  ApiError,
+  adminListTemplates,
+  adminGetTemplate,
+  adminCreateTemplate,
+  adminDeleteTemplate,
+  adminAddTemplateItem,
+  adminUpdateTemplateItem,
+  adminDeleteTemplateItem,
+} from "../../api";
+import type { Template, TemplateValue } from "../../types/cms";
+
+type MasterType = "slider" | "menu" | "footer";
+
+interface ItemField {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "url";
+  placeholder?: string;
+}
+
+// Field definition per master type. Items disimpan di tr_template_values
+// dengan value=JSON string. Form ini render input per field, di-serialize
+// jadi JSON saat save.
+const ITEM_FIELDS: Record<MasterType, ItemField[]> = {
+  slider: [
+    { key: "image_url", label: "Image URL", type: "url", placeholder: "/uploads/x.jpg" },
+    { key: "caption", label: "Caption (Title)", type: "text" },
+    { key: "subtitle", label: "Subtitle", type: "text" },
+    { key: "link", label: "Link URL", type: "url", placeholder: "/about" },
+  ],
+  menu: [
+    { key: "label", label: "Label", type: "text", placeholder: "Beranda" },
+    { key: "url", label: "URL", type: "url", placeholder: "/" },
+  ],
+  footer: [
+    { key: "title", label: "Heading", type: "text", placeholder: "Tentang Kami" },
+    { key: "content", label: "Content (HTML supported)", type: "textarea" },
+  ],
+};
+
+const TYPE_LABELS: Record<MasterType, { single: string; plural: string }> = {
+  slider: { single: "Slider", plural: "Sliders" },
+  menu: { single: "Menu Navbar", plural: "Menus" },
+  footer: { single: "Footer Widget", plural: "Footers" },
+};
+
+// AdminMasters — page dengan 3 tab (Sliders/Menus/Footers). Tiap tab
+// pakai layout master-detail: list master di kiri, items di kanan.
+export const AdminMasters: React.FC = () => {
+  const [tab, setTab] = useState<MasterType>("slider");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 rounded-[14px] border border-line-sand bg-white p-1">
+        {(["slider", "menu", "footer"] as MasterType[]).map((t) => {
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`flex-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold transition ${
+                active ? "bg-brand-deep text-white" : "text-ink-tertiary hover:text-brand-deep"
+              }`}
+            >
+              {TYPE_LABELS[t].plural}
+            </button>
+          );
+        })}
+      </div>
+
+      <MasterDetail key={tab} type={tab} />
+    </div>
+  );
+};
+
+// MasterDetail — list master + detail panel untuk edit items.
+const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
+  const labels = TYPE_LABELS[type];
+  const [list, setList] = useState<Template[]>([]);
+  const [selected, setSelected] = useState<Template | null>(null);
+  const [items, setItems] = useState<TemplateValue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const loadList = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminListTemplates({ type_template: type });
+      setList(res);
+      if (res.length > 0 && !selected) setSelected(res[0]);
+      else if (res.length === 0) setSelected(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal memuat daftar.");
+    } finally {
+      setLoading(false);
+    }
+  }, [type, selected]);
+
+  const loadItems = useCallback(async (templateID: number) => {
+    try {
+      const tpl = await adminGetTemplate(templateID);
+      setItems(
+        (tpl.values || [])
+          .filter((v) => v.key.startsWith("item_"))
+          .sort((a, b) => a.order - b.order),
+      );
+    } catch {
+      setItems([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
+
+  useEffect(() => {
+    if (selected) loadItems(selected.id);
+    else setItems([]);
+  }, [selected, loadItems]);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      {/* List master */}
+      <div className="rounded-[16px] border border-line-sand bg-white">
+        <div className="flex items-center justify-between border-b border-line-sand px-4 py-3">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+            Daftar
+          </span>
+          <Button
+            type="button"
+            hierarchy="primary"
+            size="sm"
+            onClick={() => setCreating(true)}
+            prefixIcon={<Icon name="plus" size={11} />}
+          >
+            Baru
+          </Button>
+        </div>
+        {loading ? (
+          <div className="px-4 py-6 text-sm text-ink-muted">Memuat…</div>
+        ) : list.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-ink-muted">
+            Belum ada {labels.single}.
+          </div>
+        ) : (
+          <ul className="max-h-[60vh] overflow-y-auto">
+            {list.map((tpl) => {
+              const active = selected?.id === tpl.id;
+              return (
+                <li key={tpl.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(tpl)}
+                    className={`flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition ${
+                      active
+                        ? "border-brand-deep bg-paper-cream/60"
+                        : "border-transparent hover:bg-paper-cream/30"
+                    }`}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-paper-cream text-brand-deep">
+                      <Icon name="file" size={14} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-brand">
+                        {tpl.name}
+                      </span>
+                      <span className="block truncate font-mono text-[10px] text-ink-muted">
+                        ID {tpl.id} · {tpl.code}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {error && (
+          <div className="border-t border-status-dangerBorder bg-status-dangerBg px-4 py-2 text-[12px] text-status-dangerFg">
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Detail panel */}
+      <div>
+        {selected ? (
+          <ItemsManager
+            template={selected}
+            items={items}
+            fields={ITEM_FIELDS[type]}
+            typeLabel={labels.single}
+            onItemsChanged={() => loadItems(selected.id)}
+            onTemplateDeleted={() => {
+              setSelected(null);
+              loadList();
+            }}
+          />
+        ) : (
+          <div className="rounded-[16px] border border-line-sand bg-white px-5 py-10 text-center text-sm text-ink-muted">
+            Pilih atau buat {labels.single} di kiri untuk mulai mengelola item.
+          </div>
+        )}
+      </div>
+
+      {creating && (
+        <CreateMasterModal
+          type={type}
+          typeLabel={labels.single}
+          onClose={() => setCreating(false)}
+          onCreated={(tpl) => {
+            setCreating(false);
+            setSelected(tpl);
+            loadList();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ItemsManager — kelola item di template selected (CRUD per item).
+const ItemsManager: React.FC<{
+  template: Template;
+  items: TemplateValue[];
+  fields: ItemField[];
+  typeLabel: string;
+  onItemsChanged: () => void;
+  onTemplateDeleted: () => void;
+}> = ({ template, items, fields, typeLabel, onItemsChanged, onTemplateDeleted }) => {
+  const [editing, setEditing] = useState<{
+    mode: "new" | "edit";
+    itemID?: number;
+    data: Record<string, string>;
+  } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openNew = () =>
+    setEditing({
+      mode: "new",
+      data: Object.fromEntries(fields.map((f) => [f.key, ""])),
+    });
+
+  const openEdit = (item: TemplateValue) => {
+    let data: Record<string, string> = {};
+    try {
+      const parsed = JSON.parse(item.value || "{}");
+      data = Object.fromEntries(
+        fields.map((f) => [f.key, String(parsed[f.key] ?? "")]),
+      );
+    } catch {
+      data = Object.fromEntries(fields.map((f) => [f.key, ""]));
+    }
+    setEditing({ mode: "edit", itemID: item.id, data });
+  };
+
+  const handleSave = async () => {
+    if (!editing) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const payload = JSON.stringify(editing.data);
+      if (editing.mode === "new") {
+        await adminAddTemplateItem(template.id, payload);
+      } else if (editing.itemID) {
+        await adminUpdateTemplateItem(template.id, editing.itemID, payload);
+      }
+      setEditing(null);
+      onItemsChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal menyimpan item.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (item: TemplateValue) => {
+    if (!confirm("Hapus item ini?")) return;
+    try {
+      await adminDeleteTemplateItem(template.id, item.id);
+      onItemsChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal menghapus.");
+    }
+  };
+
+  const handleDeleteMaster = async () => {
+    if (!confirm(`Hapus ${typeLabel} "${template.name}"? Items akan ikut terhapus.`)) return;
+    try {
+      await adminDeleteTemplate(template.id);
+      onTemplateDeleted();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal menghapus master.");
+    }
+  };
+
+  return (
+    <div className="rounded-[16px] border border-line-sand bg-white">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line-sand px-5 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="font-serif text-[1.1rem] tracking-[-0.01em] text-brand">{template.name}</h2>
+            <Badge variant={template.is_active ? "success" : "neutral"}>
+              {template.is_active ? "Aktif" : "Non-aktif"}
+            </Badge>
+          </div>
+          <div className="mt-0.5 font-mono text-[11px] text-ink-muted">
+            Code: {template.code} · ID: {template.id} · Untuk dipakai di builder, pakai ID ini di properties picker.
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" hierarchy="primary" size="sm" onClick={openNew} prefixIcon={<Icon name="plus" size={12} />}>
+            Tambah Item
+          </Button>
+          <Button type="button" hierarchy="secondary" size="sm" onClick={handleDeleteMaster} prefixIcon={<Icon name="trash" size={12} />}>
+            Hapus Master
+          </Button>
+        </div>
+      </div>
+
+      {/* Items list */}
+      <div className="px-5 py-4">
+        {error && (
+          <div className="mb-3 rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[13px] text-status-dangerFg">
+            {error}
+          </div>
+        )}
+        {items.length === 0 ? (
+          <div className="rounded-md border border-dashed border-line-sand bg-paper-cream/40 px-4 py-8 text-center text-sm text-ink-muted">
+            Belum ada item. Klik "Tambah Item" untuk mulai.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item) => {
+              let preview = "";
+              try {
+                const parsed = JSON.parse(item.value || "{}");
+                preview = String(parsed[fields[0].key] || parsed[fields[1]?.key || ""] || "(kosong)");
+              } catch {
+                preview = item.value;
+              }
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-md border border-line-sand bg-paper-cream/30 px-3 py-2"
+                >
+                  <span className="font-mono text-[10px] text-ink-muted">{item.key}</span>
+                  <span className="flex-1 truncate text-[13px] text-brand">{preview}</span>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item)}
+                    className="rounded-md border border-line-sand bg-white p-1.5 text-ink-tertiary hover:border-brand-deep hover:text-brand-deep"
+                    aria-label="Edit"
+                  >
+                    <Icon name="edit" size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item)}
+                    className="rounded-md border border-status-dangerBorder bg-white p-1.5 text-status-dangerFg hover:bg-status-dangerBg"
+                    aria-label="Hapus"
+                  >
+                    <Icon name="trash" size={12} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {editing && (
+        <ItemEditModal
+          fields={fields}
+          mode={editing.mode}
+          data={editing.data}
+          onChange={(data) => setEditing({ ...editing, data })}
+          onSave={handleSave}
+          onCancel={() => setEditing(null)}
+          submitting={submitting}
+        />
+      )}
+    </div>
+  );
+};
+
+// CreateMasterModal — modal untuk buat master baru (code, name).
+const CreateMasterModal: React.FC<{
+  type: MasterType;
+  typeLabel: string;
+  onClose: () => void;
+  onCreated: (tpl: Template) => void;
+}> = ({ type, typeLabel, onClose, onCreated }) => {
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim() || !name.trim()) {
+      setError("Code dan Name wajib diisi.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await adminCreateTemplate({
+        code: code.trim().toLowerCase().replace(/\s+/g, "-"),
+        name: name.trim(),
+        type_template: type,
+        is_active: true,
+      });
+      const tpl = await adminGetTemplate(res.id);
+      onCreated(tpl);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal membuat.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <form
+        onSubmit={handleSubmit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[420px] rounded-[20px] bg-white p-6 shadow-[0_30px_80px_rgba(15,30,61,0.25)]"
+      >
+        <h3 className="font-serif text-[1.2rem] tracking-[-0.01em] text-brand">
+          Tambah {typeLabel}
+        </h3>
+        <div className="mt-4 space-y-3">
+          <Field label="Code" required hint="Identifier unik, hanya huruf kecil + dash">
+            <TextInput value={code} onChange={setCode} placeholder="hero-slider" />
+          </Field>
+          <Field label="Name" required>
+            <TextInput value={name} onChange={setName} placeholder="Hero Slider" />
+          </Field>
+          {error && (
+            <div className="rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[12px] text-status-dangerFg">
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" hierarchy="secondary" onClick={onClose} disabled={submitting}>
+            Batal
+          </Button>
+          <Button type="submit" hierarchy="primary" disabled={submitting}>
+            {submitting ? "Menyimpan…" : "Buat"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// ItemEditModal — modal generic untuk add/edit item dengan field config.
+const ItemEditModal: React.FC<{
+  fields: ItemField[];
+  mode: "new" | "edit";
+  data: Record<string, string>;
+  onChange: (data: Record<string, string>) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  submitting: boolean;
+}> = ({ fields, mode, data, onChange, onSave, onCancel, submitting }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+    onClick={onCancel}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="w-full max-w-[480px] rounded-[20px] bg-white p-6 shadow-[0_30px_80px_rgba(15,30,61,0.25)]"
+    >
+      <h3 className="font-serif text-[1.2rem] tracking-[-0.01em] text-brand">
+        {mode === "new" ? "Tambah Item" : "Edit Item"}
+      </h3>
+      <div className="mt-4 space-y-3">
+        {fields.map((f) => (
+          <Field key={f.key} label={f.label}>
+            {f.type === "textarea" ? (
+              <textarea
+                className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
+                rows={4}
+                value={data[f.key] || ""}
+                onChange={(e) => onChange({ ...data, [f.key]: e.target.value })}
+                placeholder={f.placeholder}
+              />
+            ) : (
+              <TextInput
+                value={data[f.key] || ""}
+                onChange={(v) => onChange({ ...data, [f.key]: v })}
+                placeholder={f.placeholder}
+              />
+            )}
+          </Field>
+        ))}
+      </div>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button type="button" hierarchy="secondary" onClick={onCancel} disabled={submitting}>
+          Batal
+        </Button>
+        <Button type="button" hierarchy="primary" onClick={onSave} disabled={submitting}>
+          {submitting ? "Menyimpan…" : "Simpan"}
+        </Button>
+      </div>
+    </div>
+  </div>
+);

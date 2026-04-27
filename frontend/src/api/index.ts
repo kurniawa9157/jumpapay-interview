@@ -4,5 +4,6 @@ export * from "./account";
 export * from "./system";
 export * from "./public";
 export * from "./builder";
+export * from "./content";
 export * as authApi from "./auth";
 export { ApiError, baseUrl, useMockApi, tokenStore, onAuthExpired } from "./client";

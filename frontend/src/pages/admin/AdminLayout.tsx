@@ -7,6 +7,9 @@ import { AdminDaftarUser } from "./AdminDaftarUser";
 import { AdminRoles } from "./AdminRoles";
 import { AdminPengaturan } from "./AdminPengaturan";
 import { AdminLanding } from "./AdminLanding";
+import { AdminMasters } from "./AdminMasters";
+import { AdminPosts } from "./AdminPosts";
+import { AdminMediaLibrary } from "./AdminMediaLibrary";
 import type { AuthPermissionMap } from "../../api";
 
 interface Props {
@@ -22,14 +25,20 @@ type AdminPage =
   | "daftar-user"
   | "peran"
   | "pengaturan"
-  | "landing";
+  | "landing"
+  | "masters"
+  | "posts"
+  | "media";
 
 const pageMeta: Record<AdminPage, { title: string; subtitle: string }> = {
   dashboard: { title: "Ringkasan", subtitle: "Dasbor admin" },
   "daftar-user": { title: "Daftar User", subtitle: "Kelola user sistem" },
   peran: { title: "Peran & Izin", subtitle: "RBAC per modul" },
   pengaturan: { title: "Pengaturan Sistem", subtitle: "Tema & preferensi global" },
-  landing: { title: "Landing Page", subtitle: "Page builder + master data CMS" },
+  landing: { title: "Landing Page", subtitle: "Page builder layout" },
+  masters: { title: "Master Konten", subtitle: "Slider, Menu, Footer" },
+  posts: { title: "Posts & Pages", subtitle: "Artikel, berita, halaman statis" },
+  media: { title: "Media Library", subtitle: "Upload & kelola gambar / file" },
 };
 
 // Cek akses modul: super admin = true; user lain = minimal punya can_view.
@@ -64,6 +73,9 @@ export const AdminLayout: React.FC<Props> = ({
     }
     if (canView(permissions, isSuperAdmin, "CONTENT_MGMT")) {
       items.push({ key: "landing", label: "Landing Page", icon: "edit" });
+      items.push({ key: "masters", label: "Master Konten", icon: "list" });
+      items.push({ key: "posts", label: "Posts & Pages", icon: "file" });
+      items.push({ key: "media", label: "Media Library", icon: "image" });
     }
     if (canView(permissions, isSuperAdmin, "SYSTEM_SETTINGS")) {
       items.push({ key: "pengaturan", label: "Pengaturan", icon: "settings" });
@@ -104,6 +116,9 @@ export const AdminLayout: React.FC<Props> = ({
       {page === "daftar-user" && <AdminDaftarUser />}
       {page === "peran" && <AdminRoles />}
       {page === "landing" && <AdminLanding />}
+      {page === "masters" && <AdminMasters />}
+      {page === "posts" && <AdminPosts />}
+      {page === "media" && <AdminMediaLibrary />}
       {page === "pengaturan" && <AdminPengaturan />}
     </AuthenticatedShell>
   );
