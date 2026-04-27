@@ -174,13 +174,20 @@ export const AdminPosts: React.FC = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      {p.type === "page" && p.use_builder && (
+                      {p.type === "page" && (
                         <button
                           type="button"
                           onClick={() => setView({ kind: "builder", post: p })}
-                          className="rounded-md border border-brand-deep/40 bg-paper-cream px-2.5 py-1.5 text-[11px] font-semibold text-brand-deep hover:border-brand-deep"
-                          aria-label="Edit Layout"
-                          title="Edit page sections (builder mode)"
+                          className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                            p.use_builder
+                              ? "border border-brand-deep bg-brand-deep text-white hover:opacity-90"
+                              : "border border-brand-deep/40 bg-paper-cream text-brand-deep hover:border-brand-deep"
+                          }`}
+                          title={
+                            p.use_builder
+                              ? "Edit page sections (builder mode aktif)"
+                              : "Aktifkan + edit page sections"
+                          }
                         >
                           Edit Layout
                         </button>
@@ -482,10 +489,10 @@ const PostFormModal: React.FC<{
             <div className="rounded-md border border-status-infoBorder bg-status-infoBg px-4 py-3 text-[13px] text-status-infoFg">
               <Icon name="info" size={13} className="mr-1 inline" />
               Page Builder aktif. Edit page sections via tombol{" "}
-              <strong>Edit Layout</strong> di list setelah simpan.
+              <strong>Edit Layout</strong> di list (warna brand-deep solid).
               {mode === "new" && (
                 <span className="block mt-1 text-[11px]">
-                  (Simpan post ini dulu — tombol Edit Layout akan muncul di row.)
+                  (Simpan post ini dulu, lalu kembali ke list.)
                 </span>
               )}
             </div>
