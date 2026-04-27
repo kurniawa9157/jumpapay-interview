@@ -278,7 +278,7 @@ export const MenuBuilder: React.FC<Props> = ({
   );
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
       {/* Left panel — presets */}
       <div className="rounded-[16px] border border-line-sand bg-white">
         <div className="border-b border-line-sand px-4 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-muted">

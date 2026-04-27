@@ -158,7 +158,7 @@ const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
   }, [selected, loadItems]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       {/* List master */}
       <div className="rounded-[16px] border border-line-sand bg-white">
         <div className="flex items-center justify-between border-b border-line-sand px-4 py-3">
