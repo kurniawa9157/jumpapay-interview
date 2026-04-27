@@ -6,6 +6,7 @@ import { Badge } from "../../components/data/Badge";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { RichTextEditor } from "../../components/RichTextEditor";
+import { MediaPicker } from "../../components/MediaPicker";
 import {
   ApiError,
   adminListTemplates,
@@ -23,7 +24,7 @@ type MasterType = "slider" | "menu" | "footer";
 interface ItemField {
   key: string;
   label: string;
-  type: "text" | "textarea" | "url" | "richtext";
+  type: "text" | "textarea" | "url" | "richtext" | "image";
   placeholder?: string;
 }
 
@@ -32,7 +33,7 @@ interface ItemField {
 // jadi JSON saat save.
 const ITEM_FIELDS: Record<MasterType, ItemField[]> = {
   slider: [
-    { key: "image_url", label: "Image URL", type: "url", placeholder: "/uploads/x.jpg" },
+    { key: "image_url", label: "Gambar Slide", type: "image", placeholder: "/uploads/x.jpg" },
     { key: "caption", label: "Caption (Title)", type: "text" },
     { key: "subtitle", label: "Subtitle", type: "text" },
     { key: "link", label: "Link URL", type: "url", placeholder: "/about" },
@@ -522,55 +523,96 @@ const ItemEditModal: React.FC<{
   onSave: () => void;
   onCancel: () => void;
   submitting: boolean;
-}> = ({ fields, mode, data, onChange, onSave, onCancel, submitting }) => (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-    onClick={onCancel}
-  >
+}> = ({ fields, mode, data, onChange, onSave, onCancel, submitting }) => {
+  // pickerForKey — state field key yang sedang buka MediaPicker
+  // (mendukung multiple image field per type kalau di kemudian hari ada).
+  const [pickerForKey, setPickerForKey] = useState<string | null>(null);
+
+  return (
     <div
-      onClick={(e) => e.stopPropagation()}
-      className="w-full max-w-[480px] rounded-[20px] bg-white p-6 shadow-[0_30px_80px_rgba(15,30,61,0.25)]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      onClick={onCancel}
     >
-      <h3 className="font-serif text-[1.2rem] tracking-[-0.01em] text-brand">
-        {mode === "new" ? "Tambah Item" : "Edit Item"}
-      </h3>
-      <div className="mt-4 space-y-3">
-        {fields.map((f) => (
-          <Field key={f.key} label={f.label}>
-            {f.type === "richtext" ? (
-              <RichTextEditor
-                value={data[f.key] || ""}
-                onChange={(html) => onChange({ ...data, [f.key]: html })}
-                variant="minimal"
-                placeholder={f.placeholder || "Tulis konten…"}
-                minHeight={120}
-              />
-            ) : f.type === "textarea" ? (
-              <textarea
-                className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
-                rows={4}
-                value={data[f.key] || ""}
-                onChange={(e) => onChange({ ...data, [f.key]: e.target.value })}
-                placeholder={f.placeholder}
-              />
-            ) : (
-              <TextInput
-                value={data[f.key] || ""}
-                onChange={(v) => onChange({ ...data, [f.key]: v })}
-                placeholder={f.placeholder}
-              />
-            )}
-          </Field>
-        ))}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-[20px] bg-white p-6 shadow-[0_30px_80px_rgba(15,30,61,0.25)]"
+      >
+        <h3 className="font-serif text-[1.2rem] tracking-[-0.01em] text-brand">
+          {mode === "new" ? "Tambah Item" : "Edit Item"}
+        </h3>
+        <div className="mt-4 space-y-3">
+          {fields.map((f) => (
+            <Field key={f.key} label={f.label}>
+              {f.type === "richtext" ? (
+                <RichTextEditor
+                  value={data[f.key] || ""}
+                  onChange={(html) => onChange({ ...data, [f.key]: html })}
+                  variant="minimal"
+                  placeholder={f.placeholder || "Tulis konten…"}
+                  minHeight={120}
+                />
+              ) : f.type === "textarea" ? (
+                <textarea
+                  className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
+                  rows={4}
+                  value={data[f.key] || ""}
+                  onChange={(e) => onChange({ ...data, [f.key]: e.target.value })}
+                  placeholder={f.placeholder}
+                />
+              ) : f.type === "image" ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <TextInput
+                      value={data[f.key] || ""}
+                      onChange={(v) => onChange({ ...data, [f.key]: v })}
+                      placeholder={f.placeholder || "/uploads/foo.jpg"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPickerForKey(f.key)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-line-sand bg-white px-3 text-[12px] font-semibold text-brand-deep transition hover:border-brand-deep"
+                      title="Pilih dari Media Library"
+                    >
+                      <Icon name="image" size={12} /> Pilih
+                    </button>
+                  </div>
+                  {data[f.key] && (
+                    <div className="overflow-hidden rounded-md border border-line-sand">
+                      <img
+                        src={data[f.key]}
+                        alt="Preview"
+                        className="h-32 w-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <TextInput
+                  value={data[f.key] || ""}
+                  onChange={(v) => onChange({ ...data, [f.key]: v })}
+                  placeholder={f.placeholder}
+                />
+              )}
+            </Field>
+          ))}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" hierarchy="secondary" onClick={onCancel} disabled={submitting}>
+            Batal
+          </Button>
+          <Button type="button" hierarchy="primary" onClick={onSave} disabled={submitting}>
+            {submitting ? "Menyimpan…" : "Simpan"}
+          </Button>
+        </div>
       </div>
-      <div className="mt-5 flex justify-end gap-2">
-        <Button type="button" hierarchy="secondary" onClick={onCancel} disabled={submitting}>
-          Batal
-        </Button>
-        <Button type="button" hierarchy="primary" onClick={onSave} disabled={submitting}>
-          {submitting ? "Menyimpan…" : "Simpan"}
-        </Button>
-      </div>
+
+      {pickerForKey && (
+        <MediaPicker
+          mimePrefix="image/"
+          onSelect={(m) => onChange({ ...data, [pickerForKey]: m.url })}
+          onClose={() => setPickerForKey(null)}
+        />
+      )}
     </div>
-  </div>
-);
+  );
+};
