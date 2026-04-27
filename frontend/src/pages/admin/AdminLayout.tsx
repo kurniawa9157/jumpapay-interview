@@ -10,6 +10,8 @@ import { AdminLanding } from "./AdminLanding";
 import { AdminMasters } from "./AdminMasters";
 import { AdminPosts } from "./AdminPosts";
 import { AdminMediaLibrary } from "./AdminMediaLibrary";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { shouldBlockNavigation } from "../../hooks/useNavigationGuard";
 import type { AuthPermissionMap } from "../../api";
 
 interface Props {
@@ -100,29 +102,66 @@ export const AdminLayout: React.FC<Props> = ({
 
   const meta = pageMeta[page];
 
+  // Pending nav target — kalau ada guard yang block, simpan target di sini
+  // dan tampilkan ConfirmDialog. User confirm → setPage; cancel → batal.
+  const [pendingNav, setPendingNav] = useState<AdminPage | null>(null);
+
+  const handleNavigate = (k: string) => {
+    const target = k as AdminPage;
+    if (target === page) return;
+    if (shouldBlockNavigation()) {
+      setPendingNav(target);
+      return;
+    }
+    setPage(target);
+  };
+
   return (
-    <AuthenticatedShell
-      variant="admin"
-      navItems={navItems}
-      activeKey={page}
-      onNavigate={(k) => setPage(k as AdminPage)}
-      user={user}
-      onLogout={onExit}
-      onOpenAccount={onOpenAccount}
-      onViewLanding={onViewLanding}
-      pageTitle={meta.title}
-      pageSubtitle={meta.subtitle}
-      brandTitle="App Template"
-      brandSubtitle="Admin"
-    >
-      {page === "dashboard" && <AdminDashboard onNavigate={(k) => setPage(k as AdminPage)} />}
-      {page === "daftar-user" && <AdminDaftarUser />}
-      {page === "peran" && <AdminRoles />}
-      {page === "landing" && <AdminLanding />}
-      {page === "masters" && <AdminMasters />}
-      {page === "posts" && <AdminPosts />}
-      {page === "media" && <AdminMediaLibrary />}
-      {page === "pengaturan" && <AdminPengaturan />}
-    </AuthenticatedShell>
+    <>
+      <AuthenticatedShell
+        variant="admin"
+        navItems={navItems}
+        activeKey={page}
+        onNavigate={handleNavigate}
+        user={user}
+        onLogout={onExit}
+        onOpenAccount={onOpenAccount}
+        onViewLanding={onViewLanding}
+        pageTitle={meta.title}
+        pageSubtitle={meta.subtitle}
+        brandTitle="App Template"
+        brandSubtitle="Admin"
+      >
+        {page === "dashboard" && <AdminDashboard onNavigate={handleNavigate} />}
+        {page === "daftar-user" && <AdminDaftarUser />}
+        {page === "peran" && <AdminRoles />}
+        {page === "landing" && <AdminLanding />}
+        {page === "masters" && <AdminMasters />}
+        {page === "posts" && <AdminPosts />}
+        {page === "media" && <AdminMediaLibrary />}
+        {page === "pengaturan" && <AdminPengaturan />}
+      </AuthenticatedShell>
+
+      {pendingNav && (
+        <ConfirmDialog
+          title="Tinggalkan tanpa simpan?"
+          message={
+            <>
+              Ada perubahan yang <strong>belum disimpan</strong> di halaman ini. Lanjut pindah →
+              perubahan hilang.
+            </>
+          }
+          confirmLabel="Tinggalkan"
+          cancelLabel="Tetap di sini"
+          tone="warn"
+          onConfirm={() => {
+            const target = pendingNav;
+            setPendingNav(null);
+            setPage(target);
+          }}
+          onClose={() => setPendingNav(null)}
+        />
+      )}
+    </>
   );
 };

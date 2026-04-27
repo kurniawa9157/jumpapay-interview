@@ -3,14 +3,17 @@ import { Button } from "@idds/react";
 import { Icon } from "../../components/Icon";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { useNavigationGuard } from "../../hooks/useNavigationGuard";
 import {
   ApiError,
   adminGetPost,
   adminUpdatePost,
+  getPublicTemplateBySlug,
 } from "../../api";
 import type { Post } from "../../types/cms";
 import type { BuilderComponent, ComponentType } from "../../types/builder.types";
 import { useBuilder } from "../../hooks/useBuilder";
+import { BlockRenderer } from "../../components/BlockRenderer";
 import { ComponentPalette } from "./landing/ComponentPalette";
 import { BuilderCanvas } from "./landing/BuilderCanvas";
 import { PropertiesPanel } from "./landing/PropertiesPanel";
@@ -57,10 +60,43 @@ export const PostPageBuilder: React.FC<Props> = ({ postID, postTitle, onBack }) 
   const [error, setError] = useState<string | null>(null);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const [confirmBack, setConfirmBack] = useState(false);
+  // Navbar + footer ghost dari homepage layout supaya admin lihat konteks
+  // saat edit. Ghost = pointer-events-none + opacity rendah, label "From
+  // Homepage" untuk jelas asal-nya.
+  const [ghostNavbar, setGhostNavbar] = useState<BuilderComponent | null>(null);
+  const [ghostFooter, setGhostFooter] = useState<BuilderComponent | null>(null);
 
   const pendingRemove = pendingRemoveId
     ? components.find((c) => c.id === pendingRemoveId) || null
     : null;
+
+  // Fetch homepage layout sekali untuk ekstrak ghost navbar/footer.
+  useEffect(() => {
+    let cancelled = false;
+    getPublicTemplateBySlug("/")
+      .then((tpl) => {
+        if (cancelled) return;
+        const lv = (tpl.values || []).find((v) => v.key === "layout");
+        if (!lv?.value) return;
+        try {
+          const blocks = JSON.parse(lv.value) as BuilderComponent[];
+          if (!Array.isArray(blocks)) return;
+          setGhostNavbar(blocks.find((b) => b.type === "navbar") || null);
+          for (let i = blocks.length - 1; i >= 0; i--) {
+            if (blocks[i].type === "footer") {
+              setGhostFooter(blocks[i]);
+              break;
+            }
+          }
+        } catch {
+          /* ignore parse error */
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +172,9 @@ export const PostPageBuilder: React.FC<Props> = ({ postID, postTitle, onBack }) 
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Register guard untuk in-app navigation (sidebar nav klik).
+  useNavigationGuard(isDirty);
+
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-160px)] items-center justify-center text-sm text-ink-muted">
@@ -199,14 +238,18 @@ export const PostPageBuilder: React.FC<Props> = ({ postID, postTitle, onBack }) 
           exclude={PAGE_BUILDER_EXCLUDE}
           hint="Navbar & Footer otomatis dari halaman utama. Tidak perlu ditambah lagi di sini."
         />
-        <BuilderCanvas
-          components={components}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onRemove={(id) => setPendingRemoveId(id)}
-          onDuplicate={duplicateComponent}
-          onMove={moveComponent}
-        />
+        <div className="flex flex-1 flex-col overflow-hidden bg-paper-cream/40">
+          {ghostNavbar && <Ghost block={ghostNavbar} label="Navbar (dari halaman utama)" />}
+          <BuilderCanvas
+            components={components}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onRemove={(id) => setPendingRemoveId(id)}
+            onDuplicate={duplicateComponent}
+            onMove={moveComponent}
+          />
+          {ghostFooter && <Ghost block={ghostFooter} label="Footer (dari halaman utama)" />}
+        </div>
         <PropertiesPanel component={selected} updateProp={updateProp} />
       </div>
 
@@ -246,3 +289,19 @@ export const PostPageBuilder: React.FC<Props> = ({ postID, postTitle, onBack }) 
     </div>
   );
 };
+
+// Ghost — render block (navbar/footer) sebagai preview konteks. Non-
+// interactive (pointer-events-none). Label badge di sudut menunjukkan
+// asal-nya. Maksimal scale-95 + opacity untuk visual cue "ini bukan
+// area edit, ini cuma frame".
+const Ghost: React.FC<{ block: BuilderComponent; label: string }> = ({ block, label }) => (
+  <div className="relative shrink-0 select-none">
+    <span className="absolute left-3 top-1.5 z-10 rounded bg-brand-deep/85 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white shadow">
+      {label}
+    </span>
+    <div className="pointer-events-none origin-top opacity-70" style={{ filter: "saturate(0.85)" }}>
+      <BlockRenderer layout={[block]} />
+    </div>
+  </div>
+);
+

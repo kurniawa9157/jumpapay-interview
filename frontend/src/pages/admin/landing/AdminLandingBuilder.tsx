@@ -3,6 +3,7 @@ import { Button } from "@idds/react";
 import { Icon } from "../../../components/Icon";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useToast } from "../../../components/Toast";
+import { useNavigationGuard } from "../../../hooks/useNavigationGuard";
 import {
   ApiError,
   adminGetTemplate,
@@ -104,7 +105,7 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
     }
   };
 
-  // Warn user kalau leave dengan unsaved changes.
+  // Warn user kalau leave dengan unsaved changes (browser-level).
   useEffect(() => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -114,6 +115,9 @@ export const AdminLandingBuilder: React.FC<Props> = ({ templateID, templateName,
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
+
+  // Register guard untuk in-app navigation (sidebar nav klik).
+  useNavigationGuard(isDirty);
 
   if (loading) {
     return (
