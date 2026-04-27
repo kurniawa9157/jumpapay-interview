@@ -171,6 +171,9 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
           {p.showAuthButton !== false && (
             <>
               <ColorField label="Warna Tombol" value={(p.btnBgColor as string) || ""} onChange={setStr("btnBgColor")} />
+              <p className="-mt-2 text-[11px] text-ink-muted">
+                Kosongkan untuk ikuti brand theme aktif (default putih untuk teks).
+              </p>
               <ColorField label="Warna Teks Tombol" value={(p.btnTextColor as string) || ""} onChange={setStr("btnTextColor")} />
             </>
           )}

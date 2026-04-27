@@ -87,6 +87,14 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
   const padding = PADDING_MAP[p.padding as string] || "py-3";
   const width = normalizeContainerWidth(p.containerWidth);
 
+  // Auth button color: kalau admin kosongin di properties → ikut brand IDDS
+  // via CSS var --ina-brand-primary (di-set runtime oleh applyBrand). Hex
+  // fallback dipakai kalau var belum di-set (mis. SSR atau theme error).
+  const rawBtnBg = ((p.btnBgColor as string) || "").trim();
+  const rawBtnText = ((p.btnTextColor as string) || "").trim();
+  const btnBg = rawBtnBg || "var(--ina-brand-primary, #0f1e3d)";
+  const btnText = rawBtnText || "#ffffff";
+
   return (
     <nav
       id={(p.sectionId as string) || undefined}
@@ -176,10 +184,8 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
               onClick={authHandler}
               className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
               style={{
-                backgroundColor:
-                  (p.btnBgColor as string) || textColor,
-                color:
-                  (p.btnTextColor as string) || bgColor,
+                backgroundColor: btnBg,
+                color: btnText,
               }}
             >
               <Icon name={auth?.loggedIn && auth.canEnterAdmin ? "dashboard" : "user"} size={13} />
@@ -243,10 +249,8 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
               }}
               className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
               style={{
-                backgroundColor:
-                  (p.btnBgColor as string) || textColor,
-                color:
-                  (p.btnTextColor as string) || bgColor,
+                backgroundColor: btnBg,
+                color: btnText,
               }}
             >
               <Icon name={auth?.loggedIn && auth.canEnterAdmin ? "dashboard" : "user"} size={13} />

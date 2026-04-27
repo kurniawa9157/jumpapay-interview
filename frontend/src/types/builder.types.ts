@@ -51,8 +51,10 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Record<string, unknown>> 
     logoWidth: 120,
     padding: 'md',
     menuAlign: 'right',
-    btnBgColor: '#0d6efd',
-    btnTextColor: '#ffffff',
+    // Kosong = ikut brand IDDS aktif (var(--ina-brand-primary)).
+    // Admin bisa override pakai ColorField di Properties Panel.
+    btnBgColor: '',
+    btnTextColor: '',
     sectionId: 'header',
     menu_navbar_id: '',
     containerWidth: 'wide',
