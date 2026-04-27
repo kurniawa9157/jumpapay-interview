@@ -158,21 +158,27 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
                   <Icon name="chevronDown" size={11} />
                 </button>
                 {open && (
-                  <div
-                    className="absolute left-0 top-full z-50 mt-2 min-w-[180px] overflow-hidden rounded-md bg-white shadow-[0_10px_30px_rgba(15,30,61,0.18)] ring-1 ring-black/5"
-                    style={{ color: "#333" }}
-                  >
-                    {item.children!.map((child) => (
-                      <a
-                        key={child.id}
-                        href={child.url}
-                        target={child.target || "_self"}
-                        rel={child.target === "_blank" ? "noopener noreferrer" : undefined}
-                        className="block px-4 py-2 text-sm hover:bg-paper-cream"
-                      >
-                        {child.label}
-                      </a>
-                    ))}
+                  // Outer abs touches parent button (top-full, no margin) +
+                  // pt-2 sebagai bridge transparan supaya cursor traversing
+                  // gap visual tidak fire onMouseLeave parent. Inner div
+                  // pegang styling submenu sebenarnya.
+                  <div className="absolute left-0 top-full z-50 pt-2">
+                    <div
+                      className="min-w-[180px] overflow-hidden rounded-md bg-white shadow-[0_10px_30px_rgba(15,30,61,0.18)] ring-1 ring-black/5"
+                      style={{ color: "#333" }}
+                    >
+                      {item.children!.map((child) => (
+                        <a
+                          key={child.id}
+                          href={child.url}
+                          target={child.target || "_self"}
+                          rel={child.target === "_blank" ? "noopener noreferrer" : undefined}
+                          className="block px-4 py-2 text-sm hover:bg-paper-cream"
+                        >
+                          {child.label}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
