@@ -114,10 +114,17 @@ services:
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-168h}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
       LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-15}
+      # Media Library upload (persistent via volume di bawah).
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_MAX_SIZE_MB: ${UPLOAD_MAX_SIZE_MB:-10}
       # SEED_* di-pass juga meski server tidak pakai; aman karena hanya dibaca cmd/seed.
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+    volumes:
+      # Persistent media uploads — supaya file tidak hilang saat rebuild
+      # container. Path harus match UPLOAD_DIR di env.
+      - uploads_data:/app/uploads
     expose:
       - "8080"
     healthcheck:
@@ -155,6 +162,8 @@ volumes:
     name: eppat_pg_data
   redis_data:
     name: eppat_redis_data
+  uploads_data:
+    name: eppat_uploads
 
 networks:
   default:

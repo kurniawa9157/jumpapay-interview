@@ -35,6 +35,12 @@ COPY --from=builder /out/seed   /app/seed
 # Migrations disertakan agar bisa di-mount-less oleh service migrate (opsional).
 COPY migrations ./migrations
 
+# Upload dir (Media Library). Default UPLOAD_DIR=./uploads → /app/uploads.
+# Buat dulu + chown supaya user `app` bisa write. Production wajib mount
+# volume ke path ini (lihat deploy/docker-compose.yml) supaya file persistent
+# antar rebuild container.
+RUN mkdir -p /app/uploads && chown -R app:app /app/uploads
+
 USER app
 EXPOSE 8080
 
