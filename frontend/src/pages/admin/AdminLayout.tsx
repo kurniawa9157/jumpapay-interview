@@ -6,6 +6,7 @@ import { AdminDashboard } from "./AdminDashboard";
 import { AdminDaftarUser } from "./AdminDaftarUser";
 import { AdminRoles } from "./AdminRoles";
 import { AdminPengaturan } from "./AdminPengaturan";
+import { AdminLanding } from "./AdminLanding";
 import type { AuthPermissionMap } from "../../api";
 
 interface Props {
@@ -16,22 +17,38 @@ interface Props {
   onOpenAccount?: () => void;
 }
 
-type AdminPage = "dashboard" | "daftar-user" | "peran" | "pengaturan";
+type AdminPage =
+  | "dashboard"
+  | "daftar-user"
+  | "peran"
+  | "pengaturan"
+  | "landing";
 
 const pageMeta: Record<AdminPage, { title: string; subtitle: string }> = {
   dashboard: { title: "Ringkasan", subtitle: "Dasbor admin" },
   "daftar-user": { title: "Daftar User", subtitle: "Kelola user sistem" },
   peran: { title: "Peran & Izin", subtitle: "RBAC per modul" },
   pengaturan: { title: "Pengaturan Sistem", subtitle: "Tema & preferensi global" },
+  landing: { title: "Landing Page", subtitle: "Page builder + master data CMS" },
 };
 
 // Cek akses modul: super admin = true; user lain = minimal punya can_view.
-const canView = (permissions: AuthPermissionMap, isSuperAdmin: boolean, module: string): boolean => {
+const canView = (
+  permissions: AuthPermissionMap,
+  isSuperAdmin: boolean,
+  module: string,
+): boolean => {
   if (isSuperAdmin) return true;
   return !!permissions[module]?.view;
 };
 
-export const AdminLayout: React.FC<Props> = ({ user, permissions, isSuperAdmin, onExit, onOpenAccount }) => {
+export const AdminLayout: React.FC<Props> = ({
+  user,
+  permissions,
+  isSuperAdmin,
+  onExit,
+  onOpenAccount,
+}) => {
   const navItems = useMemo<SidebarNavItem[]>(() => {
     const items: SidebarNavItem[] = [
       { key: "dashboard", label: "Dasbor", icon: "dashboard" },
@@ -39,8 +56,14 @@ export const AdminLayout: React.FC<Props> = ({ user, permissions, isSuperAdmin, 
     if (canView(permissions, isSuperAdmin, "USER_MGMT")) {
       items.push({ key: "daftar-user", label: "Daftar User", icon: "users" });
     }
-    if (canView(permissions, isSuperAdmin, "ROLE_MGMT") || canView(permissions, isSuperAdmin, "PERMISSION_MGMT")) {
+    if (
+      canView(permissions, isSuperAdmin, "ROLE_MGMT") ||
+      canView(permissions, isSuperAdmin, "PERMISSION_MGMT")
+    ) {
       items.push({ key: "peran", label: "Peran & Izin", icon: "shield" });
+    }
+    if (canView(permissions, isSuperAdmin, "CONTENT_MGMT")) {
+      items.push({ key: "landing", label: "Landing Page", icon: "edit" });
     }
     if (canView(permissions, isSuperAdmin, "SYSTEM_SETTINGS")) {
       items.push({ key: "pengaturan", label: "Pengaturan", icon: "settings" });
@@ -80,6 +103,7 @@ export const AdminLayout: React.FC<Props> = ({ user, permissions, isSuperAdmin, 
       {page === "dashboard" && <AdminDashboard onNavigate={(k) => setPage(k as AdminPage)} />}
       {page === "daftar-user" && <AdminDaftarUser />}
       {page === "peran" && <AdminRoles />}
+      {page === "landing" && <AdminLanding />}
       {page === "pengaturan" && <AdminPengaturan />}
     </AuthenticatedShell>
   );
