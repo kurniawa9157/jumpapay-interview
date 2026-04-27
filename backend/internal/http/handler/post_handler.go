@@ -55,14 +55,15 @@ func (h *PostHandler) Get(c *gin.Context) {
 }
 
 type createPostReq struct {
-	Slug       string  `json:"slug" binding:"required,min=1"`
-	Title      string  `json:"title" binding:"required,min=1"`
-	Excerpt    *string `json:"excerpt"`
-	Content    *string `json:"content"`
-	CoverImage *string `json:"cover_image"`
-	Type       string  `json:"type" binding:"required"`
-	Status     string  `json:"status" binding:"required"`
-	Tags       *string `json:"tags"`
+	Slug        string  `json:"slug" binding:"required,min=1"`
+	Title       string  `json:"title" binding:"required,min=1"`
+	Excerpt     *string `json:"excerpt"`
+	Content     *string `json:"content"`
+	CoverImage  *string `json:"cover_image"`
+	CoverAspect string  `json:"cover_aspect"`
+	Type        string  `json:"type" binding:"required"`
+	Status      string  `json:"status" binding:"required"`
+	Tags        *string `json:"tags"`
 }
 
 func (h *PostHandler) Create(c *gin.Context) {
@@ -74,7 +75,8 @@ func (h *PostHandler) Create(c *gin.Context) {
 	uid, _ := middleware.GetUserID(c)
 	id, err := h.svc.Create(c.Request.Context(), postgres.CreatePostInput{
 		Slug: req.Slug, Title: req.Title, Excerpt: req.Excerpt, Content: req.Content,
-		CoverImage: req.CoverImage, Type: domain.PostType(req.Type),
+		CoverImage: req.CoverImage, CoverAspect: req.CoverAspect,
+		Type: domain.PostType(req.Type),
 		Status: domain.PostStatus(req.Status), Tags: req.Tags, AuthorID: &uid,
 	})
 	if err != nil {
@@ -85,14 +87,15 @@ func (h *PostHandler) Create(c *gin.Context) {
 }
 
 type updatePostReq struct {
-	Slug       string  `json:"slug" binding:"required,min=1"`
-	Title      string  `json:"title" binding:"required,min=1"`
-	Excerpt    *string `json:"excerpt"`
-	Content    *string `json:"content"`
-	CoverImage *string `json:"cover_image"`
-	Type       string  `json:"type" binding:"required"`
-	Status     string  `json:"status" binding:"required"`
-	Tags       *string `json:"tags"`
+	Slug        string  `json:"slug" binding:"required,min=1"`
+	Title       string  `json:"title" binding:"required,min=1"`
+	Excerpt     *string `json:"excerpt"`
+	Content     *string `json:"content"`
+	CoverImage  *string `json:"cover_image"`
+	CoverAspect string  `json:"cover_aspect"`
+	Type        string  `json:"type" binding:"required"`
+	Status      string  `json:"status" binding:"required"`
+	Tags        *string `json:"tags"`
 }
 
 func (h *PostHandler) Update(c *gin.Context) {
@@ -108,7 +111,8 @@ func (h *PostHandler) Update(c *gin.Context) {
 	}
 	if err := h.svc.Update(c.Request.Context(), id, postgres.UpdatePostInput{
 		Slug: req.Slug, Title: req.Title, Excerpt: req.Excerpt, Content: req.Content,
-		CoverImage: req.CoverImage, Type: domain.PostType(req.Type),
+		CoverImage: req.CoverImage, CoverAspect: req.CoverAspect,
+		Type: domain.PostType(req.Type),
 		Status: domain.PostStatus(req.Status), Tags: req.Tags,
 	}); err != nil {
 		response.FromDomainError(c, err)

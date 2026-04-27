@@ -32,6 +32,9 @@ export interface Post {
   excerpt?: string | null
   content?: string | null
   cover_image?: string | null
+  // Persentase tinggi cover terhadap lebar di detail page (mis. "60" =
+  // padding-bottom 60%, ~16:9). "auto" = pakai ukuran natural image.
+  cover_aspect: string
   type: 'post' | 'page'
   status: 'draft' | 'published' | 'archived'
   tags?: string | null

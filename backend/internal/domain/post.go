@@ -43,6 +43,9 @@ type Post struct {
 	Excerpt     *string    `json:"excerpt,omitempty"`
 	Content     *string    `json:"content,omitempty"`
 	CoverImage  *string    `json:"cover_image,omitempty"`
+	// CoverAspect — persentase tinggi cover terhadap lebar (mis. "60" =
+	// padding-bottom 60% / aspect ~16:9). "auto" = pakai ukuran natural.
+	CoverAspect string     `json:"cover_aspect"`
 	Type        PostType   `json:"type"`
 	Status      PostStatus `json:"status"`
 	Tags        *string    `json:"tags,omitempty"`

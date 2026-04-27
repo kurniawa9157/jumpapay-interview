@@ -36,6 +36,7 @@ export interface AdminCreatePostInput {
   excerpt?: string | null;
   content?: string | null;
   cover_image?: string | null;
+  cover_aspect?: string;
   type: "post" | "page";
   status: "draft" | "published" | "archived";
   tags?: string | null;

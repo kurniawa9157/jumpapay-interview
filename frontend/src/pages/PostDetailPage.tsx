@@ -213,13 +213,7 @@ export const PostDetailPage: React.FC<Props> = ({
             )}
 
             {post.cover_image && (
-              <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
-                <img
-                  src={post.cover_image}
-                  alt={post.title}
-                  className="aspect-[16/9] w-full object-cover"
-                />
-              </div>
+              <CoverImage src={post.cover_image} alt={post.title} aspect={post.cover_aspect} />
             )}
 
             {post.excerpt && (
@@ -272,5 +266,47 @@ export const PostDetailPage: React.FC<Props> = ({
         {footerBlock && <BlockRenderer layout={[footerBlock]} />}
       </div>
     </LandingAuthProvider>
+  );
+};
+
+// CoverImage — render cover dengan aspect ratio yang admin pilih.
+//   aspect = "auto" → tampilkan image natural size (max-h limit untuk
+//                     prevent gambar raksasa)
+//   aspect = "<num>" → padding-bottom <num>% trick (uniform aspect ratio
+//                      di semua viewport, gambar object-cover)
+const CoverImage: React.FC<{ src: string; alt: string; aspect?: string }> = ({
+  src,
+  alt,
+  aspect,
+}) => {
+  if (!aspect || aspect === "auto") {
+    return (
+      <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
+        <img
+          src={src}
+          alt={alt}
+          className="mx-auto block max-h-[600px] w-full object-contain"
+        />
+      </div>
+    );
+  }
+  const pct = Number(aspect);
+  if (!Number.isFinite(pct) || pct <= 0) {
+    return (
+      <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
+        <img src={src} alt={alt} className="w-full" />
+      </div>
+    );
+  }
+  return (
+    <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
+      <div className="relative w-full" style={{ paddingBottom: `${pct}%` }}>
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+    </div>
   );
 };

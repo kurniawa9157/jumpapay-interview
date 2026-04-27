@@ -245,6 +245,7 @@ const PostFormModal: React.FC<{
     excerpt: post?.excerpt ?? "",
     content: post?.content ?? "",
     cover_image: post?.cover_image ?? "",
+    cover_aspect: post?.cover_aspect || "auto",
     type: post?.type || "post",
     status: post?.status || "draft",
     tags: post?.tags ?? "",
@@ -393,6 +394,27 @@ const PostFormModal: React.FC<{
               </div>
             )}
           </Field>
+          {form.cover_image && (
+            <Field
+              label="Tinggi Cover (di halaman detail)"
+              hint="Persentase tinggi terhadap lebar. Auto = ukuran asli image."
+            >
+              <Select
+                value={form.cover_aspect || "auto"}
+                onChange={(v) => setForm({ ...form, cover_aspect: v })}
+                options={[
+                  { value: "auto", label: "Auto (ukuran asli)" },
+                  { value: "30", label: "30% — sangat rendah" },
+                  { value: "40", label: "40% — pendek" },
+                  { value: "50", label: "50% — 2:1 panorama" },
+                  { value: "56.25", label: "56.25% — 16:9 widescreen" },
+                  { value: "66.66", label: "66.66% — 3:2 photo" },
+                  { value: "75", label: "75% — 4:3 klasik" },
+                  { value: "100", label: "100% — 1:1 kotak" },
+                ]}
+              />
+            </Field>
+          )}
           <Field label="Excerpt" hint="Ringkasan singkat (1-2 kalimat). Plain text saja.">
             <textarea
               className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
