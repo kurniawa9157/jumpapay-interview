@@ -143,11 +143,10 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
             checked={p.showAuthButton !== false}
             onChange={setBool("showAuthButton", p.showAuthButton !== false)}
           />
-          <Toggle label="Show CTA Button" checked={!!p.showCtaButton} onChange={setBool("showCtaButton", !!p.showCtaButton)} />
-          {!!p.showCtaButton && (
+          {p.showAuthButton !== false && (
             <>
-              <ColorField label="CTA Background" value={(p.btnBgColor as string) || ""} onChange={setStr("btnBgColor")} />
-              <ColorField label="CTA Text Color" value={(p.btnTextColor as string) || ""} onChange={setStr("btnTextColor")} />
+              <ColorField label="Warna Tombol" value={(p.btnBgColor as string) || ""} onChange={setStr("btnBgColor")} />
+              <ColorField label="Warna Teks Tombol" value={(p.btnTextColor as string) || ""} onChange={setStr("btnTextColor")} />
             </>
           )}
         </>

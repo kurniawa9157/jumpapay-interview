@@ -168,19 +168,6 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
               </div>
             );
           })}
-          {!!p.showCtaButton && (
-            <button
-              type="button"
-              className="px-4 py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
-              style={{
-                backgroundColor: p.btnBgColor as string,
-                color: p.btnTextColor as string,
-                borderColor: p.btnBorderColor as string,
-              }}
-            >
-              Contact
-            </button>
-          )}
           {showAuthButton && (
             <button
               type="button"
