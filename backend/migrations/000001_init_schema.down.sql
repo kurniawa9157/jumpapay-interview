@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS tt_refresh_tokens;
+DROP TABLE IF EXISTS tr_system_settings;
+DROP TABLE IF EXISTS tr_data_references;
+DROP TABLE IF EXISTS tr_permissions;
+DROP TABLE IF EXISTS th_user_activity;
+DROP TABLE IF EXISTS tr_meta_users;
+DROP TABLE IF EXISTS tt_passwords;
+DROP TABLE IF EXISTS tt_contacts;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS tr_roles;

@@ -1,0 +1,34 @@
+# Binaries (anchor ke root supaya tidak ikut match folder cmd/server & cmd/seed)
+*.exe
+*.dll
+*.so
+*.dylib
+/bin/
+/tmp/
+/server
+/seed
+
+# Test / coverage
+*.test
+*.out
+coverage.txt
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Air hot reload
+.air/
+tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,161 @@
+# Stack deployment e-PPAT.
+# Dijalankan dari direktori deploy/ dengan: docker compose --env-file .env up -d
+# Lihat README.md untuk panduan lengkap.
+#
+# Service order & dependency:
+#   postgres (start) → migrate (one-shot) → seed (one-shot, idempotent)
+#                    ↓
+#   redis (start) → backend ─→ frontend (serve SPA + proxy /api)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eppat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      TZ: Asia/Jakarta
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    # Jangan expose ke host di production — biarkan internal-only.
+    # Tambah `ports: ["5432:5432"]` hanya jika perlu akses eksternal.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: eppat-redis
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Apply semua file di backend/migrations/ via golang-migrate.
+  # Service one-shot: keluar 0 jika sukses.
+  migrate:
+    image: migrate/migrate:4
+    container_name: eppat-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../backend/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable"
+      - "up"
+    restart: "no"
+
+  # Seed super admin (idempotent — skip jika user SUPER_ADMIN sudah ada).
+  # Jalankan override /app/seed, bukan /app/server.
+  seed:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: eppat-backend:${IMAGE_TAG:-latest}
+    container_name: eppat-seed
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: production
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+    command: ["/app/seed"]
+    restart: "no"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: eppat-backend:${IMAGE_TAG:-latest}
+    container_name: eppat-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: production
+      APP_PORT: "8080"
+      APP_FRONTEND_ORIGIN: ${APP_FRONTEND_ORIGIN}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: disable
+      DB_MAX_CONNS: "20"
+      REDIS_ADDR: redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-168h}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
+      LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-15}
+      # SEED_* di-pass juga meski server tidak pakai; aman karena hanya dibaca cmd/seed.
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # Frontend bundle diakses via path relatif karena nginx-nya juga
+        # yang proxy /api ke backend. Override kalau deploy split-origin.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+        VITE_USE_MOCK_API: "false"
+    image: eppat-frontend:${IMAGE_TAG:-latest}
+    container_name: eppat-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  pg_data:
+    name: eppat_pg_data
+  redis_data:
+    name: eppat_redis_data
+
+networks:
+  default:
+    name: eppat-net

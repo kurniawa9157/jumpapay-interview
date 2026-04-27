@@ -1,0 +1,12 @@
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+bin/
+tmp/
+*.log
+*.md
+.air.toml
+.vscode/
+.idea/
