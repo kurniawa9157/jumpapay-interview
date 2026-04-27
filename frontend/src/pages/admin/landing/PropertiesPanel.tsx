@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Field, TextInput, Select } from "../../../components/formKit";
 import { Icon } from "../../../components/Icon";
+import { RichTextEditor } from "../../../components/RichTextEditor";
 import {
   type BuilderComponent,
   type BentoRow,
@@ -129,12 +130,13 @@ const BlockForm: React.FC<Props> = ({ component, updateProp }) => {
     case "html_block":
       return (
         <>
-          <Field label="HTML Content" hint="Markup di-sanitize via DOMPurify saat render. Tag dasar (h1-h6, p, a, ul, etc.) didukung.">
-            <textarea
-              className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
-              rows={8}
+          <Field label="HTML Content" hint="WYSIWYG. Markup di-sanitize via DOMPurify saat render di public.">
+            <RichTextEditor
               value={(p.html as string) || ""}
-              onChange={(e) => updateProp("html", e.target.value)}
+              onChange={(html) => updateProp("html", html)}
+              variant="full"
+              placeholder="Tulis konten HTML block di sini…"
+              minHeight={200}
             />
           </Field>
           <ColorField label="Background Color" value={(p.bgColor as string) || ""} onChange={setStr("bgColor")} />
@@ -422,16 +424,20 @@ const BentoEditor: React.FC<{ rows: BentoRow[]; onChange: (rows: BentoRow[]) => 
                 </button>
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {row.cells.map((cell, j) => (
-                <textarea
-                  key={j}
-                  value={cell}
-                  onChange={(e) => updateCell(i, j, e.target.value)}
-                  placeholder={`Cell ${j + 1} HTML…`}
-                  rows={2}
-                  className="w-full rounded border border-line-sand bg-white px-2 py-1 text-[11px] text-brand"
-                />
+                <div key={j}>
+                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                    Cell {j + 1}
+                  </div>
+                  <RichTextEditor
+                    value={cell}
+                    onChange={(html) => updateCell(i, j, html)}
+                    variant="minimal"
+                    placeholder={`Konten cell ${j + 1}…`}
+                    minHeight={80}
+                  />
+                </div>
               ))}
             </div>
           </div>

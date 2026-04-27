@@ -1,3 +1,88 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* RichTextEditor — styling konten editor (tiptap) supaya WYSIWYG match
+   render output. Class .rte-content dipasang via editorProps di
+   RichTextEditor.tsx. */
+.rte-content {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: rgb(var(--eppat-brand-rgb) / 0.95);
+}
+.rte-content p {
+  margin: 0.5rem 0;
+}
+.rte-content p:first-child { margin-top: 0; }
+.rte-content p:last-child  { margin-bottom: 0; }
+.rte-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0.85rem 0 0.5rem;
+  color: rgb(var(--eppat-brand-rgb));
+}
+.rte-content h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.4rem;
+  color: rgb(var(--eppat-brand-rgb));
+}
+.rte-content ul, .rte-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.rte-content ul { list-style: disc; }
+.rte-content ol { list-style: decimal; }
+.rte-content li { margin: 0.15rem 0; }
+.rte-content li > p { margin: 0; }
+.rte-content blockquote {
+  border-left: 3px solid var(--ina-brand-primary, #0f1e3d);
+  padding: 0.25rem 0 0.25rem 0.85rem;
+  margin: 0.6rem 0;
+  color: rgb(var(--eppat-brand-rgb) / 0.7);
+  font-style: italic;
+}
+.rte-content code {
+  background: rgb(var(--eppat-paper-cream-rgb) / 0.6);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+.rte-content pre {
+  background: rgb(var(--eppat-paper-cream-rgb) / 0.7);
+  border: 1px solid rgb(var(--eppat-line-sand-rgb) / 0.8);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.6rem 0;
+}
+.rte-content pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.rte-content a {
+  color: var(--ina-brand-primary, #0f1e3d);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rte-content a:hover { opacity: 0.8; }
+.rte-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+.rte-content strong { font-weight: 700; }
+.rte-content em     { font-style: italic; }
+
+/* Placeholder (tiptap @tiptap/extension-placeholder) */
+.rte-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgb(var(--eppat-ink-muted-rgb, 100 116 139) / 0.7);
+  pointer-events: none;
+  height: 0;
+}

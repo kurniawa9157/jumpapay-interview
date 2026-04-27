@@ -5,6 +5,8 @@ import { Field, TextInput, Select } from "../../components/formKit";
 import { Badge } from "../../components/data/Badge";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { RichTextEditor } from "../../components/RichTextEditor";
+import { MediaPicker } from "../../components/MediaPicker";
 import {
   ApiError,
   adminListPosts,
@@ -235,6 +237,7 @@ const PostFormModal: React.FC<{
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,10 +313,29 @@ const PostFormModal: React.FC<{
               />
             </Field>
           </div>
-          <Field label="Cover Image URL" hint="Upload via Media Library, paste URL hasil di sini">
-            <TextInput value={form.cover_image || ""} onChange={(v) => setForm({ ...form, cover_image: v })} placeholder="/uploads/cover.jpg" />
+          <Field label="Cover Image URL" hint="Pilih dari Media Library atau paste URL manual">
+            <div className="flex gap-2">
+              <TextInput
+                value={form.cover_image || ""}
+                onChange={(v) => setForm({ ...form, cover_image: v })}
+                placeholder="/uploads/cover.jpg"
+              />
+              <button
+                type="button"
+                onClick={() => setCoverPickerOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-line-sand bg-white px-3 text-[12px] font-semibold text-brand-deep transition hover:border-brand-deep"
+                title="Pilih dari Media Library"
+              >
+                <Icon name="image" size={12} /> Pilih
+              </button>
+            </div>
+            {form.cover_image && (
+              <div className="mt-2 overflow-hidden rounded-md border border-line-sand">
+                <img src={form.cover_image} alt="Cover preview" className="h-32 w-full object-cover" />
+              </div>
+            )}
           </Field>
-          <Field label="Excerpt" hint="Ringkasan singkat (1-2 kalimat)">
+          <Field label="Excerpt" hint="Ringkasan singkat (1-2 kalimat). Plain text saja.">
             <textarea
               className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
               rows={2}
@@ -321,13 +343,13 @@ const PostFormModal: React.FC<{
               onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
             />
           </Field>
-          <Field label="Content (HTML)">
-            <textarea
-              className="w-full rounded-md border border-line-sand bg-white px-3 py-2 font-mono text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
-              rows={10}
+          <Field label="Content" hint="WYSIWYG. Insert gambar via tombol di toolbar (ambil dari Media Library).">
+            <RichTextEditor
               value={form.content || ""}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="<p>Konten artikel...</p>"
+              onChange={(html) => setForm({ ...form, content: html })}
+              variant="full"
+              placeholder="Mulai tulis artikel di sini…"
+              minHeight={260}
             />
           </Field>
           <Field label="Tags" hint="Pisah dengan koma, mis. teknologi, produk, tips">
@@ -350,6 +372,14 @@ const PostFormModal: React.FC<{
           </Button>
         </div>
       </form>
+
+      {coverPickerOpen && (
+        <MediaPicker
+          mimePrefix="image/"
+          onSelect={(m) => setForm((f) => ({ ...f, cover_image: m.url }))}
+          onClose={() => setCoverPickerOpen(false)}
+        />
+      )}
     </div>
   );
 };

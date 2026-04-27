@@ -5,6 +5,7 @@ import { Field, TextInput } from "../../components/formKit";
 import { Badge } from "../../components/data/Badge";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { RichTextEditor } from "../../components/RichTextEditor";
 import {
   ApiError,
   adminListTemplates,
@@ -22,7 +23,7 @@ type MasterType = "slider" | "menu" | "footer";
 interface ItemField {
   key: string;
   label: string;
-  type: "text" | "textarea" | "url";
+  type: "text" | "textarea" | "url" | "richtext";
   placeholder?: string;
 }
 
@@ -42,7 +43,7 @@ const ITEM_FIELDS: Record<MasterType, ItemField[]> = {
   ],
   footer: [
     { key: "title", label: "Heading", type: "text", placeholder: "Tentang Kami" },
-    { key: "content", label: "Content (HTML supported)", type: "textarea" },
+    { key: "content", label: "Content", type: "richtext" },
   ],
 };
 
@@ -536,7 +537,15 @@ const ItemEditModal: React.FC<{
       <div className="mt-4 space-y-3">
         {fields.map((f) => (
           <Field key={f.key} label={f.label}>
-            {f.type === "textarea" ? (
+            {f.type === "richtext" ? (
+              <RichTextEditor
+                value={data[f.key] || ""}
+                onChange={(html) => onChange({ ...data, [f.key]: html })}
+                variant="minimal"
+                placeholder={f.placeholder || "Tulis konten…"}
+                minHeight={120}
+              />
+            ) : f.type === "textarea" ? (
               <textarea
                 className="w-full rounded-md border border-line-sand bg-white px-3 py-2 text-sm text-brand focus:border-brand-deep focus:outline-none focus:ring-2 focus:ring-brand-deep/15"
                 rows={4}
