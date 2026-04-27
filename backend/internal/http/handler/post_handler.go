@@ -61,6 +61,8 @@ type createPostReq struct {
 	Content     *string `json:"content"`
 	CoverImage  *string `json:"cover_image"`
 	CoverAspect string  `json:"cover_aspect"`
+	UseBuilder  bool    `json:"use_builder"`
+	PageLayout  *string `json:"page_layout"`
 	Type        string  `json:"type" binding:"required"`
 	Status      string  `json:"status" binding:"required"`
 	Tags        *string `json:"tags"`
@@ -76,6 +78,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 	id, err := h.svc.Create(c.Request.Context(), postgres.CreatePostInput{
 		Slug: req.Slug, Title: req.Title, Excerpt: req.Excerpt, Content: req.Content,
 		CoverImage: req.CoverImage, CoverAspect: req.CoverAspect,
+		UseBuilder: req.UseBuilder, PageLayout: req.PageLayout,
 		Type: domain.PostType(req.Type),
 		Status: domain.PostStatus(req.Status), Tags: req.Tags, AuthorID: &uid,
 	})
@@ -93,6 +96,8 @@ type updatePostReq struct {
 	Content     *string `json:"content"`
 	CoverImage  *string `json:"cover_image"`
 	CoverAspect string  `json:"cover_aspect"`
+	UseBuilder  bool    `json:"use_builder"`
+	PageLayout  *string `json:"page_layout"`
 	Type        string  `json:"type" binding:"required"`
 	Status      string  `json:"status" binding:"required"`
 	Tags        *string `json:"tags"`
@@ -112,6 +117,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 	if err := h.svc.Update(c.Request.Context(), id, postgres.UpdatePostInput{
 		Slug: req.Slug, Title: req.Title, Excerpt: req.Excerpt, Content: req.Content,
 		CoverImage: req.CoverImage, CoverAspect: req.CoverAspect,
+		UseBuilder: req.UseBuilder, PageLayout: req.PageLayout,
 		Type: domain.PostType(req.Type),
 		Status: domain.PostStatus(req.Status), Tags: req.Tags,
 	}); err != nil {

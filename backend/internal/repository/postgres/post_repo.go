@@ -17,13 +17,15 @@ type PostRepo struct{ db *pgxpool.Pool }
 
 func NewPostRepo(db *pgxpool.Pool) *PostRepo { return &PostRepo{db: db} }
 
-const postCols = `id, slug, title, excerpt, content, cover_image, cover_aspect, type, status, tags, sequence,
+const postCols = `id, slug, title, excerpt, content, cover_image, cover_aspect,
+	use_builder, page_layout, type, status, tags, sequence,
 	published_at, author_id, created_at, updated_at`
 
 func (r *PostRepo) scan(row pgx.Row) (*domain.Post, error) {
 	p := &domain.Post{}
 	err := row.Scan(&p.ID, &p.Slug, &p.Title, &p.Excerpt, &p.Content, &p.CoverImage,
-		&p.CoverAspect, &p.Type, &p.Status, &p.Tags, &p.Sequence, &p.PublishedAt, &p.AuthorID,
+		&p.CoverAspect, &p.UseBuilder, &p.PageLayout,
+		&p.Type, &p.Status, &p.Tags, &p.Sequence, &p.PublishedAt, &p.AuthorID,
 		&p.CreatedAt, &p.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrNotFound
@@ -92,7 +94,8 @@ func (r *PostRepo) List(ctx context.Context, f PostListFilter) ([]domain.Post, i
 	for rows.Next() {
 		p := domain.Post{}
 		if err := rows.Scan(&p.ID, &p.Slug, &p.Title, &p.Excerpt, &p.Content, &p.CoverImage,
-			&p.CoverAspect, &p.Type, &p.Status, &p.Tags, &p.Sequence, &p.PublishedAt, &p.AuthorID,
+			&p.CoverAspect, &p.UseBuilder, &p.PageLayout,
+			&p.Type, &p.Status, &p.Tags, &p.Sequence, &p.PublishedAt, &p.AuthorID,
 			&p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
@@ -108,6 +111,8 @@ type CreatePostInput struct {
 	Content     *string
 	CoverImage  *string
 	CoverAspect string
+	UseBuilder  bool
+	PageLayout  *string
 	Type        domain.PostType
 	Status      domain.PostStatus
 	Tags        *string
@@ -133,10 +138,12 @@ func (r *PostRepo) Create(ctx context.Context, in CreatePostInput) (int64, error
 	}
 	var id int64
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO tt_posts (slug, title, excerpt, content, cover_image, cover_aspect, type, status, tags, author_id, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO tt_posts (slug, title, excerpt, content, cover_image, cover_aspect,
+			use_builder, page_layout, type, status, tags, author_id, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
-	`, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, coverAspect, typeStr, statusStr, in.Tags, in.AuthorID, publishedAt).Scan(&id)
+	`, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, coverAspect,
+		in.UseBuilder, in.PageLayout, typeStr, statusStr, in.Tags, in.AuthorID, publishedAt).Scan(&id)
 	return id, err
 }
 
@@ -147,6 +154,8 @@ type UpdatePostInput struct {
 	Content     *string
 	CoverImage  *string
 	CoverAspect string
+	UseBuilder  bool
+	PageLayout  *string
 	Type        domain.PostType
 	Status      domain.PostStatus
 	Tags        *string
@@ -166,15 +175,17 @@ func (r *PostRepo) Update(ctx context.Context, id int64, in UpdatePostInput) err
 		UPDATE tt_posts
 		SET slug = $2, title = $3, excerpt = $4, content = $5, cover_image = $6,
 		    cover_aspect = $7,
-		    type = $8, status = $9, tags = $10,
+		    use_builder = $8, page_layout = $9,
+		    type = $10, status = $11, tags = $12,
 		    published_at = CASE
-		      WHEN $11 AND published_at IS NULL THEN NOW()
-		      WHEN NOT $11 THEN NULL
+		      WHEN $13 AND published_at IS NULL THEN NOW()
+		      WHEN NOT $13 THEN NULL
 		      ELSE published_at
 		    END,
 		    updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
-	`, id, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, coverAspect, typeStr, statusStr, in.Tags, isPublished)
+	`, id, in.Slug, in.Title, in.Excerpt, in.Content, in.CoverImage, coverAspect,
+		in.UseBuilder, in.PageLayout, typeStr, statusStr, in.Tags, isPublished)
 	return err
 }
 

@@ -165,7 +165,12 @@ export const PostDetailPage: React.FC<Props> = ({
           </header>
         )}
 
-        {/* Body */}
+        {/* Body — branch render: builder mode (page_layout JSON) vs editor
+            mode (content HTML). Builder mode skip max-w wrapper karena
+            block punya containerWidth sendiri. */}
+        {!loading && post && post.use_builder && post.page_layout ? (
+          <PageBuilderRender raw={post.page_layout} />
+        ) : (
         <main className="mx-auto max-w-[820px] px-4 py-10 sm:px-6 lg:py-14">
         {loading ? (
           <div className="space-y-4">
@@ -261,12 +266,36 @@ export const PostDetailPage: React.FC<Props> = ({
           </article>
         )}
         </main>
+        )}
 
         {/* Footer — pakai dari homepage layout. Kalau tidak ada, skip. */}
         {footerBlock && <BlockRenderer layout={[footerBlock]} />}
       </div>
     </LandingAuthProvider>
   );
+};
+
+// PageBuilderRender — parse page_layout JSON dan render via BlockRenderer.
+// Filter out navbar + footer block kalau secara hidden tersimpan di JSON
+// (defense-in-depth — palette sudah exclude di builder, tapi JSON manual
+// edit tetap mungkin).
+const PageBuilderRender: React.FC<{ raw: string }> = ({ raw }) => {
+  let blocks: BuilderComponent[] = [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      blocks = (parsed as BuilderComponent[]).filter(
+        (b) => b && b.type !== "navbar" && b.type !== "footer",
+      );
+    }
+  } catch {
+    return (
+      <main className="mx-auto max-w-[820px] px-4 py-10 text-center text-sm text-status-warnFg">
+        Layout halaman tidak valid (JSON parse error). Hubungi admin.
+      </main>
+    );
+  }
+  return <BlockRenderer layout={blocks} />;
 };
 
 // CoverImage — render cover dengan aspect ratio yang admin pilih.

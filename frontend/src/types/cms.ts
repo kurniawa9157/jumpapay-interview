@@ -35,6 +35,10 @@ export interface Post {
   // Persentase tinggi cover terhadap lebar di detail page (mis. "60" =
   // padding-bottom 60%, ~16:9). "auto" = pakai ukuran natural image.
   cover_aspect: string
+  // use_builder = true → render public pakai page_layout JSON; false →
+  // render content HTML (perilaku existing). Hanya relevan untuk type='page'.
+  use_builder: boolean
+  page_layout?: string | null
   type: 'post' | 'page'
   status: 'draft' | 'published' | 'archived'
   tags?: string | null

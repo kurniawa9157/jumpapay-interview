@@ -46,6 +46,12 @@ type Post struct {
 	// CoverAspect — persentase tinggi cover terhadap lebar (mis. "60" =
 	// padding-bottom 60% / aspect ~16:9). "auto" = pakai ukuran natural.
 	CoverAspect string     `json:"cover_aspect"`
+	// UseBuilder — true kalau type='page' dan admin pilih mode page builder.
+	// Kalau true, render public pakai PageLayout JSON; kalau false, pakai
+	// Content HTML.
+	UseBuilder  bool       `json:"use_builder"`
+	// PageLayout — JSON BuilderComponent[]. NULL/empty kalau editor mode.
+	PageLayout  *string    `json:"page_layout,omitempty"`
 	Type        PostType   `json:"type"`
 	Status      PostStatus `json:"status"`
 	Tags        *string    `json:"tags,omitempty"`

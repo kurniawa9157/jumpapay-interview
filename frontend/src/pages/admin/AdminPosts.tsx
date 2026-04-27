@@ -7,6 +7,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { RichTextEditor } from "../../components/RichTextEditor";
 import { MediaPicker } from "../../components/MediaPicker";
+import { PostPageBuilder } from "./PostPageBuilder";
 import {
   ApiError,
   adminListPosts,
@@ -20,7 +21,13 @@ import type { AdminCreatePostInput } from "../../api";
 type Filter = "all" | "post" | "page";
 
 // AdminPosts — CRUD post (article + page) untuk article_grid block.
+// View modes:
+//   - 'list' (default): tabel posts + form modal
+//   - 'builder': full-screen page builder untuk edit page_layout suatu post
 export const AdminPosts: React.FC = () => {
+  const [view, setView] = useState<{ kind: "list" } | { kind: "builder"; post: Post }>({
+    kind: "list",
+  });
   const [filter, setFilter] = useState<Filter>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +70,20 @@ export const AdminPosts: React.FC = () => {
       throw err; // biar dialog tetap terbuka
     }
   };
+
+  // Render full-screen page builder kalau user klik "Edit Layout".
+  if (view.kind === "builder") {
+    return (
+      <PostPageBuilder
+        postID={view.post.id}
+        postTitle={view.post.title}
+        onBack={() => {
+          setView({ kind: "list" });
+          setReloadTick((v) => v + 1);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -153,6 +174,17 @@ export const AdminPosts: React.FC = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                      {p.type === "page" && p.use_builder && (
+                        <button
+                          type="button"
+                          onClick={() => setView({ kind: "builder", post: p })}
+                          className="rounded-md border border-brand-deep/40 bg-paper-cream px-2.5 py-1.5 text-[11px] font-semibold text-brand-deep hover:border-brand-deep"
+                          aria-label="Edit Layout"
+                          title="Edit page sections (builder mode)"
+                        >
+                          Edit Layout
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setEditing({ mode: "edit", post: p })}
@@ -246,6 +278,8 @@ const PostFormModal: React.FC<{
     content: post?.content ?? "",
     cover_image: post?.cover_image ?? "",
     cover_aspect: post?.cover_aspect || "auto",
+    use_builder: post?.use_builder || false,
+    page_layout: post?.page_layout ?? null,
     type: post?.type || "post",
     status: post?.status || "draft",
     tags: post?.tags ?? "",
@@ -372,6 +406,27 @@ const PostFormModal: React.FC<{
               />
             </Field>
           </div>
+
+          {/* Toggle Page Builder — hanya muncul untuk type=page. */}
+          {form.type === "page" && (
+            <div className="flex items-start gap-3 rounded-md border border-line-sand bg-paper-cream/30 px-4 py-3">
+              <input
+                id="use-builder-toggle"
+                type="checkbox"
+                checked={!!form.use_builder}
+                onChange={(e) => setForm({ ...form, use_builder: e.target.checked })}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-brand-deep"
+              />
+              <label htmlFor="use-builder-toggle" className="flex-1 cursor-pointer">
+                <div className="text-[13px] font-semibold text-brand">Gunakan Page Builder</div>
+                <div className="mt-0.5 text-[11px] leading-5 text-ink-muted">
+                  {form.use_builder
+                    ? "Konten halaman akan dirender dari layout builder. Edit sections via tombol \"Edit Layout\" di list. RichTextEditor di bawah disembunyikan."
+                    : "Konten halaman dirender dari RichTextEditor di bawah (HTML). Aktifkan untuk pakai page sections (slider, card grid, dll)."}
+                </div>
+              </label>
+            </div>
+          )}
           <Field label="Cover Image URL" hint="Pilih dari Media Library atau paste URL manual">
             <div className="flex gap-2">
               <TextInput
@@ -423,15 +478,28 @@ const PostFormModal: React.FC<{
               onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
             />
           </Field>
-          <Field label="Content" hint="WYSIWYG. Insert gambar via tombol di toolbar (ambil dari Media Library).">
-            <RichTextEditor
-              value={form.content || ""}
-              onChange={(html) => setForm({ ...form, content: html })}
-              variant="full"
-              placeholder="Mulai tulis artikel di sini…"
-              minHeight={260}
-            />
-          </Field>
+          {form.use_builder && form.type === "page" ? (
+            <div className="rounded-md border border-status-infoBorder bg-status-infoBg px-4 py-3 text-[13px] text-status-infoFg">
+              <Icon name="info" size={13} className="mr-1 inline" />
+              Page Builder aktif. Edit page sections via tombol{" "}
+              <strong>Edit Layout</strong> di list setelah simpan.
+              {mode === "new" && (
+                <span className="block mt-1 text-[11px]">
+                  (Simpan post ini dulu — tombol Edit Layout akan muncul di row.)
+                </span>
+              )}
+            </div>
+          ) : (
+            <Field label="Content" hint="WYSIWYG. Insert gambar via tombol di toolbar (ambil dari Media Library).">
+              <RichTextEditor
+                value={form.content || ""}
+                onChange={(html) => setForm({ ...form, content: html })}
+                variant="full"
+                placeholder="Mulai tulis artikel di sini…"
+                minHeight={260}
+              />
+            </Field>
+          )}
           <Field label="Tags" hint="Pisah dengan koma, mis. teknologi, produk, tips">
             <TextInput value={form.tags || ""} onChange={(v) => setForm({ ...form, tags: v })} />
           </Field>
