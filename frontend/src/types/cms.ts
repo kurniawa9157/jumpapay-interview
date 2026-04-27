@@ -56,6 +56,13 @@ export interface MediaFile {
   mime_type: string
   size_bytes: number
   uploaded_by_id?: number | null
+  has_thumbnails: boolean
   created_at: string
+  // URL original. URLThumb/Medium/Large adalah variant resize (300/800/
+  // 1600w). Kalau has_thumbnails=false, semua variant fallback ke URL
+  // original — frontend bisa pakai responsive srcset tanpa branching.
   url: string
+  url_thumb: string
+  url_medium: string
+  url_large: string
 }

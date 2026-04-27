@@ -136,7 +136,7 @@ export const MediaPicker: React.FC<Props> = ({ mimePrefix, onSelect, onClose }) 
                   <div className="relative aspect-square bg-paper-cream/40">
                     {isImage(m.mime_type) ? (
                       <img
-                        src={m.url}
+                        src={m.url_thumb || m.url}
                         alt={m.original_name || m.filename}
                         className="h-full w-full object-cover"
                         loading="lazy"

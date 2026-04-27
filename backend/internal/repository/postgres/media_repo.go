@@ -14,11 +14,11 @@ type MediaRepo struct{ db *pgxpool.Pool }
 
 func NewMediaRepo(db *pgxpool.Pool) *MediaRepo { return &MediaRepo{db: db} }
 
-const mediaCols = `id, filename, original_name, mime_type, size_bytes, uploaded_by_id, created_at`
+const mediaCols = `id, filename, original_name, mime_type, size_bytes, uploaded_by_id, has_thumbnails, created_at`
 
 func (r *MediaRepo) scan(row pgx.Row) (*domain.MediaFile, error) {
 	m := &domain.MediaFile{}
-	err := row.Scan(&m.ID, &m.Filename, &m.OriginalName, &m.MimeType, &m.SizeBytes, &m.UploadedByID, &m.CreatedAt)
+	err := row.Scan(&m.ID, &m.Filename, &m.OriginalName, &m.MimeType, &m.SizeBytes, &m.UploadedByID, &m.HasThumbnails, &m.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrNotFound
 	}
@@ -50,7 +50,7 @@ func (r *MediaRepo) List(ctx context.Context, limit, page int) ([]domain.MediaFi
 	var out []domain.MediaFile
 	for rows.Next() {
 		m := domain.MediaFile{}
-		if err := rows.Scan(&m.ID, &m.Filename, &m.OriginalName, &m.MimeType, &m.SizeBytes, &m.UploadedByID, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Filename, &m.OriginalName, &m.MimeType, &m.SizeBytes, &m.UploadedByID, &m.HasThumbnails, &m.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, m)
@@ -59,20 +59,21 @@ func (r *MediaRepo) List(ctx context.Context, limit, page int) ([]domain.MediaFi
 }
 
 type CreateMediaInput struct {
-	Filename     string
-	OriginalName *string
-	MimeType     string
-	SizeBytes    int64
-	UploadedByID *int64
+	Filename      string
+	OriginalName  *string
+	MimeType      string
+	SizeBytes     int64
+	UploadedByID  *int64
+	HasThumbnails bool
 }
 
 func (r *MediaRepo) Create(ctx context.Context, in CreateMediaInput) (int64, error) {
 	var id int64
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO tt_media_files (filename, original_name, mime_type, size_bytes, uploaded_by_id)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO tt_media_files (filename, original_name, mime_type, size_bytes, uploaded_by_id, has_thumbnails)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
-	`, in.Filename, in.OriginalName, in.MimeType, in.SizeBytes, in.UploadedByID).Scan(&id)
+	`, in.Filename, in.OriginalName, in.MimeType, in.SizeBytes, in.UploadedByID, in.HasThumbnails).Scan(&id)
 	return id, err
 }
 

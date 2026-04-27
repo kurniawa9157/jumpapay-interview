@@ -1,4 +1,5 @@
 import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
+import { buildSrcSet } from "../../utils/responsiveImage";
 
 const SHADOW_MAP: Record<string, string> = {
   none: "none",
@@ -36,8 +37,9 @@ export function ImageBlock({ props: p }: { props: Record<string, unknown> }) {
         }}
       >
         <img
-          src={p.src as string}
+          {...buildSrcSet(p.src as string, "(max-width: 800px) 100vw, 1200px")}
           alt={(p.alt as string) || ""}
+          loading="lazy"
           style={{
             width: WIDTH_MAP[p.width as string] || "100%",
             maxWidth: "100%",

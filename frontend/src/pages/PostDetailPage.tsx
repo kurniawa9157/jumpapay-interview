@@ -13,6 +13,7 @@ import {
   LandingAuthProvider,
   type LandingAuthState,
 } from "../components/LandingAuthContext";
+import { buildSrcSet } from "../utils/responsiveImage";
 
 interface Props {
   slug: string;
@@ -308,11 +309,13 @@ const CoverImage: React.FC<{ src: string; alt: string; aspect?: string }> = ({
   alt,
   aspect,
 }) => {
+  // Hero detail page wide → pakai sizes generous untuk pilih large.
+  const imgAttrs = buildSrcSet(src, "(max-width: 800px) 100vw, 820px");
   if (!aspect || aspect === "auto") {
     return (
       <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
         <img
-          src={src}
+          {...imgAttrs}
           alt={alt}
           className="mx-auto block max-h-[600px] w-full object-contain"
         />
@@ -323,7 +326,7 @@ const CoverImage: React.FC<{ src: string; alt: string; aspect?: string }> = ({
   if (!Number.isFinite(pct) || pct <= 0) {
     return (
       <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
-        <img src={src} alt={alt} className="w-full" />
+        <img {...imgAttrs} alt={alt} className="w-full" />
       </div>
     );
   }
@@ -331,7 +334,7 @@ const CoverImage: React.FC<{ src: string; alt: string; aspect?: string }> = ({
     <div className="mt-6 overflow-hidden rounded-[16px] border border-line-sand">
       <div className="relative w-full" style={{ paddingBottom: `${pct}%` }}>
         <img
-          src={src}
+          {...imgAttrs}
           alt={alt}
           className="absolute inset-0 h-full w-full object-cover"
         />

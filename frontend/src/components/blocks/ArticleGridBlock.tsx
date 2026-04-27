@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { listPublicPosts } from "../../api/public";
 import type { Post } from "../../types/cms";
 import { containerInnerClass, normalizeContainerWidth } from "./BlockContainer";
+import { buildSrcSet } from "../../utils/responsiveImage";
 
 const SHADOW_MAP: Record<string, string> = {
   none: "none",
@@ -82,8 +83,9 @@ export function ArticleGridBlock({ props: p }: { props: Record<string, unknown> 
                   }}
                 >
                   <img
-                    src={article.cover_image}
+                    {...buildSrcSet(article.cover_image, "(max-width: 768px) 100vw, 400px")}
                     alt={article.title}
+                    loading="lazy"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 </div>
