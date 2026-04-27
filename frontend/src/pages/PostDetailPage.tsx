@@ -1,8 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import DOMPurify from "dompurify";
 import { Icon } from "../components/Icon";
-import { ApiError, getPublicPostBySlug } from "../api";
+import {
+  ApiError,
+  getPublicPostBySlug,
+  getPublicTemplateBySlug,
+} from "../api";
 import type { Post } from "../types/cms";
+import type { BuilderComponent } from "../types/builder.types";
+import { BlockRenderer } from "../components/BlockRenderer";
+import {
+  LandingAuthProvider,
+  type LandingAuthState,
+} from "../components/LandingAuthContext";
 
 interface Props {
   slug: string;
@@ -29,6 +39,9 @@ export const PostDetailPage: React.FC<Props> = ({
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Layout dari homepage template — diambil supaya navbar + footer konsisten
+  // dengan landing. Kalau gagal fetch, fallback minimal header tetap render.
+  const [siteLayout, setSiteLayout] = useState<BuilderComponent[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +68,57 @@ export const PostDetailPage: React.FC<Props> = ({
     };
   }, [slug]);
 
+  // Fetch homepage layout sekali (independent dari post) — pakai untuk
+  // ekstrak navbar + footer block.
+  useEffect(() => {
+    let cancelled = false;
+    getPublicTemplateBySlug("/")
+      .then((tpl) => {
+        if (cancelled) return;
+        const layoutValue = (tpl.values || []).find((v) => v.key === "layout");
+        if (!layoutValue?.value) {
+          setSiteLayout([]);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(layoutValue.value);
+          setSiteLayout(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setSiteLayout([]);
+        }
+      })
+      .catch(() => setSiteLayout([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Pisah navbar (top) + footer (bottom) dari layout. By convention:
+  // navbar = first navbar block ditemukan; footer = last footer block.
+  const navbarBlock = siteLayout?.find((b) => b.type === "navbar") ?? null;
+  const footerBlock = (() => {
+    if (!siteLayout) return null;
+    for (let i = siteLayout.length - 1; i >= 0; i--) {
+      if (siteLayout[i].type === "footer") return siteLayout[i];
+    }
+    return null;
+  })();
+
+  // Auth context — supaya tombol Masuk/Dasbor di NavbarBlock bekerja
+  // sama persis seperti di landing page.
+  const auth = useMemo<LandingAuthState>(
+    () => ({
+      loggedIn,
+      canEnterAdmin,
+      displayName: "",
+      onLogin: onRequestLogin,
+      onGoAdmin,
+      onAccount,
+      onLogout: () => undefined,
+    }),
+    [loggedIn, canEnterAdmin, onRequestLogin, onGoAdmin, onAccount],
+  );
+
   const authLabel = !loggedIn ? "Masuk" : canEnterAdmin ? "Dasbor" : "Akun Saya";
   const authIcon: "user" | "dashboard" = loggedIn && canEnterAdmin ? "dashboard" : "user";
   const handleAuth = () =>
@@ -69,33 +133,40 @@ export const PostDetailPage: React.FC<Props> = ({
     : "";
 
   return (
-    <div className="min-h-screen bg-paper">
-      {/* Header */}
-      <header className="border-b border-line-sand bg-white">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={onHome}
-            className="flex items-center gap-2 text-brand transition hover:opacity-80"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-deep text-white">
-              <Icon name="building" size={14} />
-            </span>
-            <span className="font-serif text-[1rem] tracking-[-0.01em]">Beranda</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleAuth}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand-deep px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:opacity-90"
-          >
-            <Icon name={authIcon} size={12} />
-            {authLabel}
-          </button>
-        </div>
-      </header>
+    <LandingAuthProvider value={auth}>
+      <div className="min-h-screen bg-paper">
+        {/* Navbar — pakai dari homepage layout supaya konsisten. Kalau tidak
+            ada navbar block atau layout belum ke-fetch, fallback header
+            minimal. */}
+        {navbarBlock ? (
+          <BlockRenderer layout={[navbarBlock]} />
+        ) : (
+          <header className="border-b border-line-sand bg-white">
+            <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+              <button
+                type="button"
+                onClick={onHome}
+                className="flex items-center gap-2 text-brand transition hover:opacity-80"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-deep text-white">
+                  <Icon name="building" size={14} />
+                </span>
+                <span className="font-serif text-[1rem] tracking-[-0.01em]">Beranda</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleAuth}
+                className="inline-flex items-center gap-1.5 rounded-md bg-brand-deep px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:opacity-90"
+              >
+                <Icon name={authIcon} size={12} />
+                {authLabel}
+              </button>
+            </div>
+          </header>
+        )}
 
-      {/* Body */}
-      <main className="mx-auto max-w-[820px] px-4 py-10 sm:px-6 lg:py-14">
+        {/* Body */}
+        <main className="mx-auto max-w-[820px] px-4 py-10 sm:px-6 lg:py-14">
         {loading ? (
           <div className="space-y-4">
             <div className="h-8 w-2/3 animate-pulse rounded bg-paper-cream/70" />
@@ -195,7 +266,11 @@ export const PostDetailPage: React.FC<Props> = ({
             </div>
           </article>
         )}
-      </main>
-    </div>
+        </main>
+
+        {/* Footer — pakai dari homepage layout. Kalau tidak ada, skip. */}
+        {footerBlock && <BlockRenderer layout={[footerBlock]} />}
+      </div>
+    </LandingAuthProvider>
   );
 };
