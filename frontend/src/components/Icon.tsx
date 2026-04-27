@@ -1,7 +1,7 @@
 import React from 'react';
 
 export type IconName =
-  | 'check' | 'chevronRight' | 'chevronLeft' | 'arrowRight' | 'upload'
+  | 'check' | 'chevronRight' | 'chevronLeft' | 'chevronDown' | 'arrowRight' | 'upload'
   | 'file' | 'shield' | 'user' | 'building' | 'stamp' | 'lock' | 'sparkle'
   | 'info' | 'spinner' | 'eye' | 'x' | 'save' | 'download' | 'mail'
   | 'phone' | 'id' | 'key' | 'clock' | 'copy'
@@ -32,6 +32,7 @@ export const Icon: React.FC<IconProps> = ({ name, size = 16, className = "", ...
   const paths: Record<IconName, React.ReactNode> = {
     check: <polyline points="20 6 9 17 4 12" />,
     chevronRight: <polyline points="9 18 15 12 9 6" />,
+    chevronDown: <polyline points="6 9 12 15 18 9" />,
     chevronLeft: <polyline points="15 18 9 12 15 6" />,
     arrowRight: <><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>,
     upload: <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></>,

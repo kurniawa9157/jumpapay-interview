@@ -7,6 +7,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { RichTextEditor } from "../../components/RichTextEditor";
 import { MediaPicker } from "../../components/MediaPicker";
+import { MenuBuilder } from "./landing/MenuBuilder";
 import {
   ApiError,
   adminListTemplates,
@@ -198,17 +199,30 @@ const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
       {/* Detail panel */}
       <div>
         {selected ? (
-          <ItemsManager
-            template={selected}
-            items={items}
-            fields={ITEM_FIELDS[type]}
-            typeLabel={labels.single}
-            onItemsChanged={() => loadItems(selected.id)}
-            onTemplateDeleted={() => {
-              setSelected(null);
-              loadList();
-            }}
-          />
+          type === "menu" ? (
+            <MenuBuilderWrapper
+              template={selected}
+              items={items}
+              onItemsChanged={() => loadItems(selected.id)}
+              onTemplateDeleted={() => {
+                setSelected(null);
+                loadList();
+              }}
+              typeLabel={labels.single}
+            />
+          ) : (
+            <ItemsManager
+              template={selected}
+              items={items}
+              fields={ITEM_FIELDS[type]}
+              typeLabel={labels.single}
+              onItemsChanged={() => loadItems(selected.id)}
+              onTemplateDeleted={() => {
+                setSelected(null);
+                loadList();
+              }}
+            />
+          )
         ) : (
           <div className="rounded-[16px] border border-line-sand bg-white px-5 py-10 text-center text-sm text-ink-muted">
             Pilih atau buat {labels.single} di kiri untuk mulai mengelola item.
@@ -230,6 +244,57 @@ const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
         />
       )}
     </div>
+  );
+};
+
+// MenuBuilderWrapper — bridge antara AdminMasters dan MenuBuilder.
+// Tugasnya: handle confirm dialog untuk delete master + delete cascade items.
+const MenuBuilderWrapper: React.FC<{
+  template: Template;
+  items: TemplateValue[];
+  typeLabel: string;
+  onItemsChanged: () => void;
+  onTemplateDeleted: () => void;
+}> = ({ template, items, typeLabel, onItemsChanged, onTemplateDeleted }) => {
+  const toast = useToast();
+  const [confirmMasterDelete, setConfirmMasterDelete] = useState(false);
+
+  const handleConfirmMasterDelete = async () => {
+    try {
+      await adminDeleteTemplate(template.id);
+      toast.success(`${typeLabel} "${template.name}" terhapus.`);
+      onTemplateDeleted();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Gagal menghapus master.");
+      throw err;
+    }
+  };
+
+  return (
+    <>
+      <MenuBuilder
+        template={template}
+        items={items}
+        onChanged={onItemsChanged}
+        onTemplateDeleted={onTemplateDeleted}
+        onRequestMasterDelete={() => setConfirmMasterDelete(true)}
+      />
+      {confirmMasterDelete && (
+        <ConfirmDialog
+          title={`Hapus ${typeLabel} "${template.name}"?`}
+          message={
+            <>
+              Master ini beserta <strong>{items.length} item</strong> akan dihapus permanen.
+              Block navbar di builder yang memakai ID master ini akan jadi broken.
+            </>
+          }
+          confirmLabel="Hapus Master"
+          tone="danger"
+          onConfirm={handleConfirmMasterDelete}
+          onClose={() => setConfirmMasterDelete(false)}
+        />
+      )}
+    </>
   );
 };
 

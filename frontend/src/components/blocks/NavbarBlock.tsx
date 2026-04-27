@@ -6,14 +6,34 @@ import { useLandingAuth } from "../LandingAuthContext";
 const PADDING_MAP: Record<string, string> = { sm: "py-2", md: "py-3", lg: "py-4" };
 
 interface MenuItem {
+  id: number;
   label: string;
   url: string;
+  target?: "_self" | "_blank";
+  parent_id?: number | null;
   children?: MenuItem[];
+}
+
+// Build flat list dengan parent_id → tree dengan children[]. Top-level =
+// item yang parent_id null/undefined.
+function buildMenuTree(flat: MenuItem[]): MenuItem[] {
+  const byId = new Map<number, MenuItem>();
+  flat.forEach((m) => byId.set(m.id, { ...m, children: [] }));
+  const roots: MenuItem[] = [];
+  byId.forEach((m) => {
+    if (m.parent_id && byId.has(m.parent_id)) {
+      byId.get(m.parent_id)!.children!.push(m);
+    } else {
+      roots.push(m);
+    }
+  });
+  return roots;
 }
 
 export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
   const auth = useLandingAuth();
   // Default true — admin bisa matikan via properties (showAuthButton=false)
   // kalau ingin pasang link login manual di menu items.
@@ -38,18 +58,25 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
     if (!menuId) return;
     getPublicTemplateByID(menuId)
       .then((tpl) => {
-        const items = (tpl.values || [])
+        const flat: MenuItem[] = (tpl.values || [])
           .filter((v) => v.key.startsWith("item_"))
           .sort((a, b) => a.order - b.order)
           .map((v) => {
             try {
-              return JSON.parse(v.value || "{}") as MenuItem;
+              const obj = JSON.parse(v.value || "{}");
+              return {
+                id: v.id,
+                label: String(obj.label || ""),
+                url: String(obj.url || ""),
+                target: obj.target === "_blank" ? "_blank" : "_self",
+                parent_id: obj.parent_id ?? null,
+              } as MenuItem;
             } catch {
               return null;
             }
           })
           .filter((x): x is MenuItem => !!x);
-        setMenuItems(items);
+        setMenuItems(buildMenuTree(flat));
       })
       .catch(() => {});
   }, [p.menu_navbar_id]);
@@ -86,16 +113,61 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
                 : "flex-end",
           }}
         >
-          {menuItems.map((item, i) => (
-            <a
-              key={i}
-              href={item.url}
-              className="text-sm hover:opacity-80 transition-opacity"
-              style={{ color: textColor }}
-            >
-              {item.label}
-            </a>
-          ))}
+          {menuItems.map((item) => {
+            const hasChildren = !!item.children && item.children.length > 0;
+            if (!hasChildren) {
+              return (
+                <a
+                  key={item.id}
+                  href={item.url}
+                  target={item.target || "_self"}
+                  rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+                  className="text-sm hover:opacity-80 transition-opacity"
+                  style={{ color: textColor }}
+                >
+                  {item.label}
+                </a>
+              );
+            }
+            const open = openSubmenu === item.id;
+            return (
+              <div
+                key={item.id}
+                className="relative"
+                onMouseEnter={() => setOpenSubmenu(item.id)}
+                onMouseLeave={() => setOpenSubmenu((cur) => (cur === item.id ? null : cur))}
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
+                  style={{ color: textColor }}
+                  aria-expanded={open}
+                  onClick={() => setOpenSubmenu(open ? null : item.id)}
+                >
+                  {item.label}
+                  <Icon name="chevronDown" size={11} />
+                </button>
+                {open && (
+                  <div
+                    className="absolute left-0 top-full z-50 mt-2 min-w-[180px] overflow-hidden rounded-md bg-white shadow-[0_10px_30px_rgba(15,30,61,0.18)] ring-1 ring-black/5"
+                    style={{ color: "#333" }}
+                  >
+                    {item.children!.map((child) => (
+                      <a
+                        key={child.id}
+                        href={child.url}
+                        target={child.target || "_self"}
+                        rel={child.target === "_blank" ? "noopener noreferrer" : undefined}
+                        className="block px-4 py-2 text-sm hover:bg-paper-cream"
+                      >
+                        {child.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {!!p.showCtaButton && (
             <button
               type="button"
@@ -144,15 +216,34 @@ export function NavbarBlock({ props: p }: { props: Record<string, unknown> }) {
           className="md:hidden mt-3 space-y-2 border-t pt-3"
           style={{ borderColor: `${textColor}20` }}
         >
-          {menuItems.map((item, i) => (
-            <a
-              key={i}
-              href={item.url}
-              className="block py-2 text-sm"
-              style={{ color: textColor }}
-            >
-              {item.label}
-            </a>
+          {menuItems.map((item) => (
+            <div key={item.id}>
+              <a
+                href={item.url}
+                target={item.target || "_self"}
+                rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+                className="block py-2 text-sm"
+                style={{ color: textColor }}
+              >
+                {item.label}
+              </a>
+              {item.children && item.children.length > 0 && (
+                <div className="ml-4 space-y-1 border-l-2 pl-3" style={{ borderColor: `${textColor}30` }}>
+                  {item.children.map((child) => (
+                    <a
+                      key={child.id}
+                      href={child.url}
+                      target={child.target || "_self"}
+                      rel={child.target === "_blank" ? "noopener noreferrer" : undefined}
+                      className="block py-1.5 text-[13px] opacity-80"
+                      style={{ color: textColor }}
+                    >
+                      {child.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
           {showAuthButton && (
             <button
