@@ -7,7 +7,7 @@ export type IconName =
   | 'phone' | 'id' | 'key' | 'clock' | 'copy'
   | 'dashboard' | 'users' | 'list' | 'bell' | 'search' | 'filter'
   | 'logout' | 'edit' | 'calendar' | 'trendingUp' | 'alert' | 'menu' | 'settings'
-  | 'trash' | 'code' | 'image' | 'arrowUp' | 'arrowDown' | 'plus';
+  | 'trash' | 'code' | 'image' | 'arrowUp' | 'arrowDown' | 'plus' | 'grip';
 
 export interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -74,6 +74,7 @@ export const Icon: React.FC<IconProps> = ({ name, size = 16, className = "", ...
     arrowUp: <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>,
     arrowDown: <><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></>,
     plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
+    grip: <><circle cx="9" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="9" cy="18" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="18" r="1.2" fill="currentColor" stroke="none" /></>,
   };
 
   return <svg {...common}>{paths[name]}</svg>;

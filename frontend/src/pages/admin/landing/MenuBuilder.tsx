@@ -1,5 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@idds/react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Icon } from "../../../components/Icon";
 import { Field, TextInput, Select } from "../../../components/formKit";
 import { useToast } from "../../../components/Toast";
@@ -159,6 +175,50 @@ export const MenuBuilder: React.FC<Props> = ({
     [template.id, onChanged, toast],
   );
 
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  // Drag-drop reorder dalam siblings yang sama (parent_id sama). Cross-
+  // parent drag di-reject — pakai indent/outdent button untuk pindah parent.
+  const handleDragEnd = useCallback(
+    (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const activeItem = parsed.find((p) => p.raw.id === Number(active.id));
+      const overItem = parsed.find((p) => p.raw.id === Number(over.id));
+      if (!activeItem || !overItem) return;
+      const aParent = activeItem.data.parent_id ?? null;
+      const oParent = overItem.data.parent_id ?? null;
+      if (aParent !== oParent) return; // cross-parent — reject
+
+      const siblings = parsed.filter((p) => (p.data.parent_id ?? null) === aParent);
+      const fromIdx = siblings.findIndex((s) => s.raw.id === activeItem.raw.id);
+      const toIdx = siblings.findIndex((s) => s.raw.id === overItem.raw.id);
+      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+
+      const reordered = [...siblings];
+      const [moved] = reordered.splice(fromIdx, 1);
+      reordered.splice(toIdx, 0, moved);
+
+      // Rebuild full order array (preserving non-sibling positions).
+      const queue = [...reordered];
+      const newFull: ParsedItem[] = [];
+      for (const p of parsed) {
+        if ((p.data.parent_id ?? null) === aParent) {
+          const next = queue.shift();
+          if (next) newFull.push(next);
+        } else {
+          newFull.push(p);
+        }
+      }
+      reorder(newFull.map((p) => p.raw.id));
+    },
+    [parsed, reorder],
+  );
+
   // moveUp/Down — swap position dengan sibling sebelum/sesudah dalam parent
   // yang sama. Semua sibling lain stay; cuma 2 ID yang ditukar.
   const moveSibling = useCallback(
@@ -284,48 +344,52 @@ export const MenuBuilder: React.FC<Props> = ({
               Menu masih kosong. Tambahkan item dari panel kiri.
             </div>
           ) : (
-            <ul className="space-y-1.5">
-              {topLevel.map((p, idx) => (
-                <MenuItemRow
-                  key={p.raw.id}
-                  item={p}
-                  depth={0}
-                  isFirst={idx === 0}
-                  isLast={idx === topLevel.length - 1}
-                  canIndent={idx > 0}
-                  canOutdent={false}
-                  onEdit={() => setEditing(p)}
-                  onDelete={() => setConfirmDelete(p)}
-                  onMoveUp={() => moveSibling(p, "up")}
-                  onMoveDown={() => moveSibling(p, "down")}
-                  onIndent={() => indent(p)}
-                  onOutdent={() => outdent(p)}
-                >
-                  {childrenOf(p.raw.id).map((c, cidx, all) => (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={parsed.map((p) => p.raw.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-1.5">
+                  {topLevel.map((p, idx) => (
                     <MenuItemRow
-                      key={c.raw.id}
-                      item={c}
-                      depth={1}
-                      isFirst={cidx === 0}
-                      isLast={cidx === all.length - 1}
-                      canIndent={false}
-                      canOutdent
-                      onEdit={() => setEditing(c)}
-                      onDelete={() => setConfirmDelete(c)}
-                      onMoveUp={() => moveSibling(c, "up")}
-                      onMoveDown={() => moveSibling(c, "down")}
-                      onIndent={() => indent(c)}
-                      onOutdent={() => outdent(c)}
-                    />
+                      key={p.raw.id}
+                      item={p}
+                      depth={0}
+                      isFirst={idx === 0}
+                      isLast={idx === topLevel.length - 1}
+                      canIndent={idx > 0}
+                      canOutdent={false}
+                      onEdit={() => setEditing(p)}
+                      onDelete={() => setConfirmDelete(p)}
+                      onMoveUp={() => moveSibling(p, "up")}
+                      onMoveDown={() => moveSibling(p, "down")}
+                      onIndent={() => indent(p)}
+                      onOutdent={() => outdent(p)}
+                    >
+                      {childrenOf(p.raw.id).map((c, cidx, all) => (
+                        <MenuItemRow
+                          key={c.raw.id}
+                          item={c}
+                          depth={1}
+                          isFirst={cidx === 0}
+                          isLast={cidx === all.length - 1}
+                          canIndent={false}
+                          canOutdent
+                          onEdit={() => setEditing(c)}
+                          onDelete={() => setConfirmDelete(c)}
+                          onMoveUp={() => moveSibling(c, "up")}
+                          onMoveDown={() => moveSibling(c, "down")}
+                          onIndent={() => indent(c)}
+                          onOutdent={() => outdent(c)}
+                        />
+                      ))}
+                    </MenuItemRow>
                   ))}
-                </MenuItemRow>
-              ))}
-            </ul>
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
           <div className="mt-3 flex items-center gap-2 rounded-md border border-status-infoBorder bg-status-infoBg px-3 py-2 text-[12px] text-status-infoFg">
             <Icon name="info" size={13} />
-            Pakai panah ↑↓ untuk reorder, → untuk jadikan sub-menu, ← untuk
-            keluarkan.
+            Drag <Icon name="grip" size={11} className="inline" /> untuk reorder dalam siblings, →
+            untuk jadikan sub-menu, ← untuk keluarkan.
           </div>
         </div>
       </div>
@@ -393,13 +457,38 @@ const MenuItemRow: React.FC<{
   onIndent,
   onOutdent,
   children,
-}) => (
-  <li>
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.raw.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+  <li ref={setNodeRef} style={style}>
     <div
       className={`flex flex-wrap items-center gap-2 rounded-md border border-line-sand bg-paper-cream/30 px-3 py-2 ${
         depth === 1 ? "ml-6 border-l-4 border-l-brand-deep/40" : ""
-      }`}
+      } ${isDragging ? "shadow-[0_10px_28px_rgba(15,30,61,0.18)]" : ""}`}
     >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab text-ink-muted hover:text-brand-deep active:cursor-grabbing"
+        aria-label="Drag untuk reorder"
+        title="Drag untuk pindah dalam siblings"
+      >
+        <Icon name="grip" size={14} />
+      </button>
       <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
         {depth === 0 ? "link" : "sub"}
       </span>
@@ -424,7 +513,8 @@ const MenuItemRow: React.FC<{
     </div>
     {children && <ul className="mt-1.5 space-y-1.5">{children}</ul>}
   </li>
-);
+  );
+};
 
 const IconBtn: React.FC<{
   icon: React.ComponentProps<typeof Icon>["name"];
