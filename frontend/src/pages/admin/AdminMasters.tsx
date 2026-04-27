@@ -85,6 +85,30 @@ export const AdminMasters: React.FC = () => {
   );
 };
 
+// previewText — convert HTML / data URL ke plain text singkat untuk preview
+// di list item. Strip tags, decode entities umum, redact data:image base64
+// jadi placeholder, normalize whitespace, batasi panjang.
+const previewText = (raw: string): string => {
+  if (!raw) return "(kosong)";
+  let t = raw
+    // Replace data:image base64 (super long) dengan placeholder ringkas
+    .replace(/<img[^>]+src=["']data:image\/[^"']+["'][^>]*>/gi, "[gambar inline]")
+    .replace(/<img[^>]+>/gi, "[gambar]")
+    // Strip tag HTML
+    .replace(/<[^>]*>/g, " ")
+    // Decode entity umum
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (t.length > 160) t = t.slice(0, 157) + "…";
+  return t || "(kosong)";
+};
+
 // MasterDetail — list master + detail panel untuk edit items.
 const MasterDetail: React.FC<{ type: MasterType }> = ({ type }) => {
   const labels = TYPE_LABELS[type];
@@ -428,17 +452,18 @@ const ItemsManager: React.FC<{
               let preview = "";
               try {
                 const parsed = JSON.parse(item.value || "{}");
-                preview = String(parsed[fields[0].key] || parsed[fields[1]?.key || ""] || "(kosong)");
+                const raw = String(parsed[fields[0].key] || parsed[fields[1]?.key || ""] || "(kosong)");
+                preview = previewText(raw);
               } catch {
-                preview = item.value;
+                preview = previewText(item.value);
               }
               return (
                 <li
                   key={item.id}
                   className="flex items-center gap-3 rounded-md border border-line-sand bg-paper-cream/30 px-3 py-2"
                 >
-                  <span className="font-mono text-[10px] text-ink-muted">{item.key}</span>
-                  <span className="flex-1 truncate text-[13px] text-brand">{preview}</span>
+                  <span className="shrink-0 font-mono text-[10px] text-ink-muted">{item.key}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-brand">{preview}</span>
                   <button
                     type="button"
                     onClick={() => openEdit(item)}
