@@ -611,8 +611,8 @@ const CustomLinkForm: React.FC<{
           onChange={setUrl}
           placeholder="URL (https://… atau #section)"
         />
+        <TextInput value={label} onChange={setLabel} placeholder="Label" />
         <div className="flex gap-2">
-          <TextInput value={label} onChange={setLabel} placeholder="Label" />
           <Select
             value={target}
             onChange={(v) => setTarget(v as "_self" | "_blank")}
