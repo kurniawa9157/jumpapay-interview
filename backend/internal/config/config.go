@@ -44,8 +44,21 @@ type Config struct {
 	LoginRateLimitPerMinute int `env:"LOGIN_RATE_LIMIT_PER_MINUTE" envDefault:"10"`
 
 	// Media upload
-	UploadDir         string `env:"UPLOAD_DIR" envDefault:"./uploads"`
-	UploadMaxSizeMB   int    `env:"UPLOAD_MAX_SIZE_MB" envDefault:"5"`
+	UploadDir       string `env:"UPLOAD_DIR" envDefault:"./uploads"`
+	UploadMaxSizeMB int    `env:"UPLOAD_MAX_SIZE_MB" envDefault:"5"`
+
+	// Storage backend untuk Media Library: 'local' (default, filesystem)
+	// atau 's3' (S3-compatible mis. AWS S3 / MinIO).
+	MediaStorage string `env:"MEDIA_STORAGE" envDefault:"local"`
+
+	// AWS S3 / S3-compatible (MinIO) — hanya dipakai kalau MEDIA_STORAGE=s3.
+	AWSAccessKeyID         string `env:"AWS_ACCESS_KEY_ID"`
+	AWSSecretAccessKey     string `env:"AWS_SECRET_ACCESS_KEY"`
+	AWSDefaultRegion       string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
+	AWSBucket              string `env:"AWS_BUCKET"`
+	AWSEndpoint            string `env:"AWS_ENDPOINT"`
+	AWSURL                 string `env:"AWS_URL"`
+	AWSUsePathStyleEndpoint bool  `env:"AWS_USE_PATH_STYLE_ENDPOINT" envDefault:"false"`
 }
 
 // Load membaca .env (opsional) lalu parse env vars ke struct.

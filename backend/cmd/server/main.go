@@ -13,6 +13,7 @@ import (
 	"github.com/kurniawa9157/template-base/internal/config"
 	httpx "github.com/kurniawa9157/template-base/internal/http"
 	"github.com/kurniawa9157/template-base/internal/platform"
+	"github.com/kurniawa9157/template-base/internal/platform/storage"
 	"github.com/kurniawa9157/template-base/internal/repository/postgres"
 	"github.com/kurniawa9157/template-base/internal/service/account"
 	"github.com/kurniawa9157/template-base/internal/service/auth"
@@ -76,7 +77,31 @@ func main() {
 	systemSvc := system.NewService(sysSettingsRepo)
 	templateSvc := content.NewTemplateService(templateRepo)
 	postSvc := content.NewPostService(postRepo)
-	mediaSvc := content.NewMediaService(mediaRepo, cfg.UploadDir, cfg.UploadMaxSizeMB)
+	// Storage backend untuk Media Library — pilih local fs atau S3
+	// (S3-compatible: AWS S3, MinIO, R2, dll) berdasarkan MEDIA_STORAGE env.
+	var mediaStorage storage.Storage
+	switch cfg.MediaStorage {
+	case "s3":
+		s3st, errS3 := storage.NewS3Storage(storage.S3Config{
+			AccessKeyID:     cfg.AWSAccessKeyID,
+			SecretAccessKey: cfg.AWSSecretAccessKey,
+			Region:          cfg.AWSDefaultRegion,
+			Bucket:          cfg.AWSBucket,
+			Endpoint:        cfg.AWSEndpoint,
+			PublicURL:       cfg.AWSURL,
+			UsePathStyle:    cfg.AWSUsePathStyleEndpoint,
+		})
+		if errS3 != nil {
+			logger.Error("media s3 init failed", "err", errS3)
+			os.Exit(1)
+		}
+		mediaStorage = s3st
+		logger.Info("media storage", "backend", "s3", "bucket", cfg.AWSBucket, "endpoint", cfg.AWSEndpoint)
+	default:
+		mediaStorage = storage.NewLocalStorage(cfg.UploadDir)
+		logger.Info("media storage", "backend", "local", "dir", cfg.UploadDir)
+	}
+	mediaSvc := content.NewMediaService(mediaRepo, mediaStorage, cfg.UploadMaxSizeMB)
 
 	// Router
 	router := httpx.NewRouter(httpx.Deps{

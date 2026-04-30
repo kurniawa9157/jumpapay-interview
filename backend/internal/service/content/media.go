@@ -1,13 +1,13 @@
 package content
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"image"
 	"io"
 	"log"
 	"mime/multipart"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,13 +15,16 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kurniawa9157/template-base/internal/domain"
+	"github.com/kurniawa9157/template-base/internal/platform/storage"
 	"github.com/kurniawa9157/template-base/internal/repository/postgres"
 )
 
-// MediaService — handle upload + simpan ke disk + register ke DB.
+// MediaService — handle upload + simpan ke storage backend (local atau S3)
+// + register ke DB. Storage di-inject lewat constructor supaya gampang
+// switch antara filesystem & cloud.
 type MediaService struct {
 	repo        *postgres.MediaRepo
-	uploadDir   string
+	storage     storage.Storage
 	maxSizeMB   int64
 	allowedExts map[string]struct{}
 }
@@ -33,20 +36,16 @@ var defaultAllowedExts = map[string]struct{}{
 }
 
 // thumbSizes — variant width yang di-generate untuk image jpg/png/gif.
-// 0 = same height (keep aspect ratio). Skip resize kalau image lebih kecil
-// dari target (no upscale, hindari blur).
 var thumbSizes = []struct {
-	name  string // subdir di uploadDir
-	width int
+	prefix string // key prefix relative ke "uploads/" (mis. "thumb")
+	width  int
 }{
 	{"thumb", 300},
 	{"medium", 800},
 	{"large", 1600},
 }
 
-// thumbnailableMimes — MIME yang bisa kita resize (decode + encode).
-// SVG vector tidak perlu thumbnail. WEBP decode butuh CGO/extra lib, skip.
-// PDF/doc skip — bukan image.
+// thumbnailableMimes — MIME yang bisa kita resize.
 var thumbnailableMimes = map[string]bool{
 	"image/jpeg": true,
 	"image/jpg":  true,
@@ -54,20 +53,20 @@ var thumbnailableMimes = map[string]bool{
 	"image/gif":  true,
 }
 
-func NewMediaService(repo *postgres.MediaRepo, uploadDir string, maxSizeMB int) *MediaService {
+func NewMediaService(repo *postgres.MediaRepo, st storage.Storage, maxSizeMB int) *MediaService {
 	if maxSizeMB <= 0 {
 		maxSizeMB = 5
 	}
 	return &MediaService{
 		repo:        repo,
-		uploadDir:   uploadDir,
+		storage:     st,
 		maxSizeMB:   int64(maxSizeMB),
 		allowedExts: defaultAllowedExts,
 	}
 }
 
-// Upload — save multipart file ke disk + (opsional) generate thumbnail
-// kalau image, lalu insert row ke DB. Return DTO dengan URLs.
+// Upload — save multipart file ke storage backend + (opsional) generate
+// thumbnail kalau image, lalu insert row ke DB.
 func (s *MediaService) Upload(ctx context.Context, fh *multipart.FileHeader, uploaderID *int64) (*domain.MediaFile, error) {
 	if fh.Size > s.maxSizeMB*1024*1024 {
 		return nil, fmt.Errorf("file melebihi batas %d MB", s.maxSizeMB)
@@ -77,37 +76,32 @@ func (s *MediaService) Upload(ctx context.Context, fh *multipart.FileHeader, upl
 		return nil, fmt.Errorf("tipe file %s tidak diperbolehkan", ext)
 	}
 
-	if err := os.MkdirAll(s.uploadDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create upload dir: %w", err)
-	}
-
 	saneName := sanitizeFilename(fh.Filename)
 	filename := uuid.NewString() + "_" + saneName
-	dst := filepath.Join(s.uploadDir, filename)
+	mime := fh.Header.Get("Content-Type")
 
+	// Read full body ke memory (max 5MB default — aman). Buffer dipakai
+	// untuk: (a) upload original, (b) decode jadi image untuk thumbnail.
 	src, err := fh.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer src.Close()
-
-	out, err := os.Create(dst)
+	rawBytes, err := io.ReadAll(src)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read upload: %w", err)
 	}
-	if _, err := io.Copy(out, src); err != nil {
-		out.Close()
-		return nil, err
-	}
-	out.Close()
 
-	// Generate thumbnails kalau image type yang kita support. Best-effort:
-	// kalau gagal (mis. file korup), log + lanjut tanpa thumbnail (set
-	// has_thumbnails=false).
-	mime := fh.Header.Get("Content-Type")
+	// Save original ke storage.
+	originalKey := "uploads/" + filename
+	if err := s.storage.Save(ctx, originalKey, bytes.NewReader(rawBytes), mime); err != nil {
+		return nil, err
+	}
+
+	// Generate thumbnails kalau image type. Best-effort.
 	hasThumbnails := false
 	if thumbnailableMimes[strings.ToLower(mime)] {
-		if err := s.generateThumbnails(dst, filename); err != nil {
+		if err := s.uploadThumbnails(ctx, rawBytes, filename); err != nil {
 			log.Printf("[media] thumbnail generation failed for %s: %v", filename, err)
 		} else {
 			hasThumbnails = true
@@ -123,9 +117,9 @@ func (s *MediaService) Upload(ctx context.Context, fh *multipart.FileHeader, upl
 		HasThumbnails: hasThumbnails,
 	})
 	if err != nil {
-		// rollback file kalau DB error.
-		_ = os.Remove(dst)
-		s.removeThumbnails(filename)
+		// rollback files kalau DB error.
+		_ = s.storage.Delete(ctx, originalKey)
+		s.removeThumbnails(ctx, filename)
 		return nil, err
 	}
 
@@ -153,18 +147,18 @@ func (s *MediaService) Delete(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	// hapus file + thumbnail dari disk dulu (best-effort), lalu row.
-	_ = os.Remove(filepath.Join(s.uploadDir, m.Filename))
+	// hapus file + thumbnail (best-effort), lalu row DB.
+	_ = s.storage.Delete(ctx, "uploads/"+m.Filename)
 	if m.HasThumbnails {
-		s.removeThumbnails(m.Filename)
+		s.removeThumbnails(ctx, m.Filename)
 	}
 	return s.repo.Delete(ctx, id)
 }
 
-// generateThumbnails — decode image lalu resize ke 3 variant. Tidak upscale
-// (kalau image lebih kecil dari target width, simpan as-is).
-func (s *MediaService) generateThumbnails(srcPath, filename string) error {
-	img, err := imaging.Open(srcPath, imaging.AutoOrientation(true))
+// uploadThumbnails — decode image dari raw bytes, resize ke 3 variant,
+// upload masing-masing ke storage. Tidak upscale.
+func (s *MediaService) uploadThumbnails(ctx context.Context, raw []byte, filename string) error {
+	img, err := imaging.Decode(bytes.NewReader(raw), imaging.AutoOrientation(true))
 	if err != nil {
 		return fmt.Errorf("decode: %w", err)
 	}
@@ -176,35 +170,35 @@ func (s *MediaService) generateThumbnails(srcPath, filename string) error {
 		} else {
 			resized = imaging.Resize(img, sz.width, 0, imaging.Lanczos)
 		}
-		dirPath := filepath.Join(s.uploadDir, sz.name)
-		if err := os.MkdirAll(dirPath, 0o755); err != nil {
-			return fmt.Errorf("mkdir %s: %w", sz.name, err)
+		// Encode ke JPEG buffer.
+		var buf bytes.Buffer
+		if err := imaging.Encode(&buf, resized, imaging.JPEG, imaging.JPEGQuality(85)); err != nil {
+			return fmt.Errorf("encode %s: %w", sz.prefix, err)
 		}
-		dstPath := filepath.Join(dirPath, filename)
-		if err := imaging.Save(resized, dstPath, imaging.JPEGQuality(85)); err != nil {
-			return fmt.Errorf("save %s: %w", sz.name, err)
+		key := "uploads/" + sz.prefix + "/" + filename
+		if err := s.storage.Save(ctx, key, &buf, "image/jpeg"); err != nil {
+			return fmt.Errorf("save %s: %w", sz.prefix, err)
 		}
 	}
 	return nil
 }
 
-// removeThumbnails — best-effort hapus 3 variant. Ignore error per file.
-func (s *MediaService) removeThumbnails(filename string) {
+// removeThumbnails — best-effort hapus 3 variant. Ignore per-file error.
+func (s *MediaService) removeThumbnails(ctx context.Context, filename string) {
 	for _, sz := range thumbSizes {
-		_ = os.Remove(filepath.Join(s.uploadDir, sz.name, filename))
+		_ = s.storage.Delete(ctx, "uploads/"+sz.prefix+"/"+filename)
 	}
 }
 
-// fillURLs — populate URL + URLThumb/Medium/Large di DTO. Kalau tidak punya
-// thumbnails (non-image atau image lama sebelum feature), semua variant
-// fallback ke URL original — frontend bisa tetap pakai responsive img
-// dengan srcset tanpa branching khusus.
+// fillURLs — populate URL + URLThumb/Medium/Large via storage.URL().
+// Untuk LocalStorage akan return "/uploads/...", untuk S3Storage absolute
+// "https://...". Frontend tidak perlu peduli backend mana.
 func (s *MediaService) fillURLs(m *domain.MediaFile) {
-	m.URL = "/uploads/" + m.Filename
+	m.URL = s.storage.URL("uploads/" + m.Filename)
 	if m.HasThumbnails {
-		m.URLThumb = "/uploads/thumb/" + m.Filename
-		m.URLMedium = "/uploads/medium/" + m.Filename
-		m.URLLarge = "/uploads/large/" + m.Filename
+		m.URLThumb = s.storage.URL("uploads/thumb/" + m.Filename)
+		m.URLMedium = s.storage.URL("uploads/medium/" + m.Filename)
+		m.URLLarge = s.storage.URL("uploads/large/" + m.Filename)
 	} else {
 		m.URLThumb = m.URL
 		m.URLMedium = m.URL
