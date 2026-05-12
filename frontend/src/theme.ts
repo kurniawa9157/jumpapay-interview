@@ -13,6 +13,13 @@ import {
   type BrandName,
   type CustomTheme,
 } from "@idds/react";
+import { setCurrentAppearance } from "./appearance";
+import {
+  DEFAULT_APPEARANCE_TEMPLATE,
+  type AppearanceColors,
+  type AppearanceComponentSettings,
+  type AppearanceTemplate,
+} from "./types/appearance.types";
 
 // 'atrbpn' adalah opsi custom kita. Sisanya = BrandName IDDS.
 export type EppatBrand = "atrbpn" | BrandName;
@@ -117,6 +124,10 @@ function setVar(key: string, value: string) {
   document.documentElement.style.setProperty(key, value, "important");
 }
 
+function setOptionalVar(key: string, value?: string) {
+  if (value) setVar(key, value);
+}
+
 function applyNeutralBase() {
   for (const key of NEUTRAL_BASE_KEYS) {
     const v = atrbpnTheme.colors[key];
@@ -149,6 +160,11 @@ function applyAtrbpnBrandVars() {
   // IDDS default !important (--ina-brand-hover).
   setVar("--ina-brand-primary", atrbpnTheme.colors["--ina-brand-primary"]!);
   setVar("--ina-brand-hover", atrbpnTheme.colors["--ina-brand-hover"]!);
+}
+
+function readRequiredVar(key: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(key).trim();
+  return value || fallback;
 }
 
 // readFirstDefinedVar — coba beberapa source CSS var, ambil yang pertama
@@ -201,6 +217,172 @@ export function applyBrand(brand: EppatBrand) {
   // 4. Set RGB triplet base + override brand triplet dengan hex IDDS aktif.
   applyAtrbpnRgbTriplets();
   mirrorBrandRgb(brand);
+}
+
+const COLOR_VAR_MAP: Record<keyof AppearanceColors, string> = {
+  brand_primary: "--ina-brand-primary",
+  brand_hover: "--ina-brand-hover",
+  content_primary: "--ina-content-primary",
+  content_secondary: "--ina-content-secondary",
+  content_tertiary: "--ina-content-tertiary",
+  background_primary: "--ina-background-primary",
+  background_secondary: "--ina-background-secondary",
+  background_tertiary: "--ina-background-tertiary",
+  stroke_primary: "--ina-stroke-primary",
+  stroke_secondary: "--ina-stroke-secondary",
+};
+
+export function getPresetAppearanceColors(brand: EppatBrand): AppearanceColors {
+  applyBrand(brand);
+  return {
+    brand_primary: readRequiredVar("--ina-brand-primary", atrbpnTheme.colors["--ina-brand-primary"]!),
+    brand_hover: readRequiredVar("--ina-brand-hover", atrbpnTheme.colors["--ina-brand-hover"]!),
+    content_primary: readRequiredVar("--ina-content-primary", atrbpnTheme.colors["--ina-content-primary"]!),
+    content_secondary: readRequiredVar("--ina-content-secondary", atrbpnTheme.colors["--ina-content-secondary"]!),
+    content_tertiary: readRequiredVar("--ina-content-tertiary", atrbpnTheme.colors["--ina-content-tertiary"]!),
+    background_primary: readRequiredVar("--ina-background-primary", atrbpnTheme.colors["--ina-background-primary"]!),
+    background_secondary: readRequiredVar("--ina-background-secondary", atrbpnTheme.colors["--ina-background-secondary"]!),
+    background_tertiary: readRequiredVar("--ina-background-tertiary", atrbpnTheme.colors["--ina-background-tertiary"]!),
+    stroke_primary: readRequiredVar("--ina-stroke-primary", atrbpnTheme.colors["--ina-stroke-primary"]!),
+    stroke_secondary: readRequiredVar("--ina-stroke-secondary", atrbpnTheme.colors["--ina-stroke-secondary"]!),
+  };
+}
+
+function applyCustomColors(colors: AppearanceColors) {
+  setCustomTheme({
+    name: "custom",
+    colors: {
+      "--ina-brand-primary": colors.brand_primary,
+      "--ina-brand-hover": colors.brand_hover,
+      "--ina-content-primary": colors.content_primary,
+      "--ina-content-secondary": colors.content_secondary,
+      "--ina-content-tertiary": colors.content_tertiary,
+      "--ina-background-primary": colors.background_primary,
+      "--ina-background-secondary": colors.background_secondary,
+      "--ina-background-tertiary": colors.background_tertiary,
+      "--ina-stroke-primary": colors.stroke_primary,
+      "--ina-stroke-secondary": colors.stroke_secondary,
+    },
+  });
+
+  for (const [source, target] of Object.entries(COLOR_VAR_MAP)) {
+    setOptionalVar(target, colors[source as keyof AppearanceColors]);
+  }
+
+  setOptionalRgb("--eppat-brand-rgb", colors.brand_primary);
+  setOptionalRgb("--eppat-brand-hover-rgb", colors.brand_hover);
+  setOptionalRgb("--eppat-paper-cream-rgb", colors.background_secondary);
+  setOptionalRgb("--eppat-paper-vanilla-rgb", colors.background_tertiary);
+  setOptionalRgb("--eppat-line-sand-rgb", colors.stroke_primary);
+  setOptionalRgb("--eppat-line-sand-dark-rgb", colors.stroke_secondary);
+}
+
+function setOptionalRgb(key: string, hex: string) {
+  const triplet = hexToRgbTriplet(hex);
+  if (triplet) setVar(key, triplet);
+}
+
+const APP_CLASS_PREFIXES = [
+  "app-density-",
+  "app-radius-",
+  "app-button-",
+  "app-form-",
+  "app-tabs-",
+  "app-table-",
+  "app-card-",
+  "app-modal-",
+  "app-sidebar-",
+];
+
+function resetAppClasses(root: HTMLElement) {
+  for (const cls of Array.from(root.classList)) {
+    if (APP_CLASS_PREFIXES.some((prefix) => cls.startsWith(prefix))) {
+      root.classList.remove(cls);
+    }
+  }
+}
+
+function applyComponentSettings(components: AppearanceComponentSettings) {
+  const root = document.documentElement;
+  resetAppClasses(root);
+  root.classList.add(`app-density-${components.density}`);
+  root.classList.add(`app-radius-${components.radius}`);
+  root.classList.add(`app-button-${components.button.shape}`);
+  root.classList.add(`app-button-default-${components.button.default_hierarchy}`);
+  root.classList.add(`app-form-${components.form.size}`);
+  root.classList.add(`app-form-label-${components.form.label_layout}`);
+  root.classList.add(`app-form-radius-${components.form.field_radius}`);
+  root.classList.add(`app-tabs-${components.tabs.variant}`);
+  root.classList.add(`app-tabs-size-${components.tabs.size}`);
+  root.classList.add(components.tabs.use_brand_color ? "app-tabs-brand" : "app-tabs-neutral");
+  if (components.tabs.full_width) root.classList.add("app-tabs-full");
+  root.classList.add(`app-table-${components.table.density}`);
+  if (components.table.zebra) root.classList.add("app-table-zebra");
+  root.classList.add(`app-card-${components.card.variant}`);
+  root.classList.add(`app-card-shadow-${components.card.shadow}`);
+  root.classList.add(`app-card-radius-${components.card.radius}`);
+  root.classList.add(`app-modal-size-${components.modal.size}`);
+  root.classList.add(`app-modal-${components.modal.header_style}`);
+  root.classList.add(`app-sidebar-${components.sidebar.variant}`);
+  root.classList.add(`app-sidebar-density-${components.sidebar.density}`);
+  if (components.table.bordered) root.classList.add("app-table-bordered");
+  if (components.table.sticky_header) root.classList.add("app-table-sticky");
+
+  const controlRadius: Record<string, string> = {
+    none: "0",
+    sm: "6px",
+    md: "8px",
+    lg: "12px",
+    pill: "999px",
+  };
+  const cardRadius: Record<string, string> = {
+    none: "0",
+    sm: "6px",
+    md: "8px",
+    lg: "14px",
+  };
+  setVar("--app-radius-control", controlRadius[components.form.field_radius] || "8px");
+  setVar("--app-radius-card", cardRadius[components.card.radius] || "8px");
+  setVar("--app-radius-modal", cardRadius[components.modal.radius] || "12px");
+}
+
+function applyFavicon(url: string) {
+  if (!url) return;
+  let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+  link.href = url;
+}
+
+export function applyAppearanceTemplate(template: AppearanceTemplate) {
+  const next: AppearanceTemplate = {
+    ...DEFAULT_APPEARANCE_TEMPLATE,
+    ...template,
+    assets: { ...DEFAULT_APPEARANCE_TEMPLATE.assets, ...template.assets },
+    components: {
+      ...DEFAULT_APPEARANCE_TEMPLATE.components,
+      ...template.components,
+      button: { ...DEFAULT_APPEARANCE_TEMPLATE.components.button, ...template.components?.button },
+      form: { ...DEFAULT_APPEARANCE_TEMPLATE.components.form, ...template.components?.form },
+      tabs: { ...DEFAULT_APPEARANCE_TEMPLATE.components.tabs, ...template.components?.tabs },
+      table: { ...DEFAULT_APPEARANCE_TEMPLATE.components.table, ...template.components?.table },
+      card: { ...DEFAULT_APPEARANCE_TEMPLATE.components.card, ...template.components?.card },
+      modal: { ...DEFAULT_APPEARANCE_TEMPLATE.components.modal, ...template.components?.modal },
+      sidebar: { ...DEFAULT_APPEARANCE_TEMPLATE.components.sidebar, ...template.components?.sidebar },
+    },
+  };
+
+  if (next.mode === "custom" && next.custom) {
+    applyCustomColors(next.custom.colors);
+  } else {
+    applyBrand(next.preset_brand);
+  }
+  applyComponentSettings(next.components);
+  applyFavicon(next.assets.favicon_url);
+  setCurrentAppearance(next);
 }
 
 // AVAILABLE_BRANDS — opsi yang boleh dipilih admin. Urut sesuai prioritas

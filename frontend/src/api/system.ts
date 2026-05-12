@@ -1,5 +1,6 @@
 import { request } from "./client";
 import type { EppatBrand } from "../theme";
+import type { AppearanceTemplate } from "../types/appearance.types";
 
 // GET /system/theme — public, dipanggil sebelum login untuk hydrate tema.
 export const getSystemTheme = async (): Promise<{ brand: EppatBrand }> => {
@@ -11,6 +12,22 @@ export const updateSystemTheme = async (brand: EppatBrand): Promise<{ brand: Epp
   return request<{ brand: EppatBrand }>("/admin/system/theme", {
     method: "PUT",
     body: { brand },
+  });
+};
+
+// GET /system/appearance — public, dipanggil sebelum mount untuk hydrate
+// warna, logo, dan gaya komponen.
+export const getSystemAppearance = async (): Promise<AppearanceTemplate> => {
+  return request<AppearanceTemplate>("/system/appearance", { skipAuth: true });
+};
+
+// PUT /admin/cms/appearance — CMS only (permission CONTENT_MGMT edit).
+export const updateSystemAppearance = async (
+  template: AppearanceTemplate,
+): Promise<AppearanceTemplate> => {
+  return request<AppearanceTemplate>("/admin/cms/appearance", {
+    method: "PUT",
+    body: template,
   });
 };
 

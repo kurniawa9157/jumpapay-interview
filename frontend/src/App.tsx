@@ -211,6 +211,7 @@ function App() {
   return (
     <RoleLanding
       me={me}
+      onSessionHydrated={setMe}
       onRequestLogin={() => setView("login")}
       onGoAdmin={() => setView("admin")}
       onAccount={() => setView("account")}

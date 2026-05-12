@@ -1,4 +1,5 @@
 import React from "react";
+import { useAppearance } from "../appearance";
 import { Icon } from "./Icon";
 
 export interface PublicNavItem {
@@ -40,13 +41,21 @@ const footerColumns = [
   },
 ];
 
-export const PublicHeader: React.FC<PublicHeaderProps> = ({ navItems = [], actions }) => (
-  <header className="sticky top-0 z-50 border-b border-[#ddd3c2] bg-[#fbf8f1]/95 backdrop-blur-md shadow-[0_10px_30px_rgba(15,30,61,0.08)]">
+export const PublicHeader: React.FC<PublicHeaderProps> = ({ navItems = [], actions }) => {
+  const appearance = useAppearance();
+  const logoSrc = appearance.assets.public_header_logo_url || appearance.assets.logo_url;
+
+  return (
+  <header className="sticky top-0 z-50 border-b border-line-sand bg-paper/95 backdrop-blur-md shadow-[0_10px_30px_rgba(15,30,61,0.08)]">
     <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-deep text-white shadow-[0_12px_30px_rgba(16,36,79,0.24)]">
-            <Icon name="building" size={20} />
+          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-brand-deep text-white shadow-[0_12px_30px_rgba(16,36,79,0.24)]">
+            {logoSrc ? (
+              <img src={logoSrc} alt="" className="h-full w-full object-contain p-1.5" />
+            ) : (
+              <Icon name="building" size={20} />
+            )}
           </div>
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Portal layanan ATR/BPN</div>
@@ -84,7 +93,8 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ navItems = [], actio
       </div>
     </div>
   </header>
-);
+  );
+};
 
 export const PublicFooter: React.FC = () => (
   <footer className="border-t border-[#d5ccbc] bg-[linear-gradient(180deg,#2d3c42_0%,#27353b_100%)] text-white">
@@ -118,7 +128,7 @@ export const PublicFooter: React.FC = () => (
 );
 
 export const PublicShell: React.FC<PublicShellProps> = ({ children, navItems, actions, mainClassName }) => (
-  <div className="flex min-h-screen flex-col bg-[#f7f5ef] text-brand">
+  <div className="flex min-h-screen flex-col bg-paper-cream text-brand">
     <PublicHeader navItems={navItems} actions={actions} />
     <main className={mainClassName ?? "mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-8"}>
       {children}

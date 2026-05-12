@@ -44,6 +44,32 @@ func (h *SystemHandler) UpdateTheme(c *gin.Context) {
 	response.OK(c, gin.H{"brand": req.Brand})
 }
 
+// GET /api/v1/system/appearance — public, hydrate warna/aset/gaya komponen
+// sebelum React mount.
+func (h *SystemHandler) GetAppearance(c *gin.Context) {
+	tpl, err := h.svc.GetAppearanceTemplate(c.Request.Context())
+	if err != nil {
+		response.FromDomainError(c, err)
+		return
+	}
+	response.OK(c, tpl)
+}
+
+// PUT /api/v1/admin/cms/appearance — admin only (CONTENT_MGMT edit).
+// PUT /api/v1/admin/system/appearance — compatibility route (SYSTEM_SETTINGS edit).
+func (h *SystemHandler) UpdateAppearance(c *gin.Context) {
+	var req system.AppearanceTemplate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, 400, "invalid_body", err.Error())
+		return
+	}
+	if err := h.svc.SetAppearanceTemplate(c.Request.Context(), req); err != nil {
+		response.FromDomainError(c, err)
+		return
+	}
+	response.OK(c, req)
+}
+
 // GET /api/v1/system/snapshot — public; brand_theme + app_name + maintenance
 // status untuk hydrate global state frontend sebelum login.
 func (h *SystemHandler) GetSnapshot(c *gin.Context) {

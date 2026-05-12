@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useAppearance } from "../appearance";
 import { Icon } from "../components/Icon";
 import { Field, TextInput } from "../components/formKit";
 import { ApiError, authApi } from "../api";
 import type { MeResponse } from "../api";
+import { DEFAULT_APPEARANCE_TEMPLATE } from "../types/appearance.types";
 
 interface Props {
   onBack: () => void;
@@ -27,7 +29,20 @@ type Step =
   | { kind: "credentials" }
   | { kind: "2fa"; pendingToken: string; identifier: string };
 
+const hexToRgba = (hex: string, alpha: number): string => {
+  const clean = hex.replace("#", "");
+  const normalized =
+    clean.length === 3
+      ? clean.split("").map((char) => char + char).join("")
+      : clean;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export const LoginPage: React.FC<Props> = ({ onBack, onSuccess }) => {
+  const appearance = useAppearance();
   const [step, setStep] = useState<Step>({ kind: "credentials" });
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -117,134 +132,230 @@ export const LoginPage: React.FC<Props> = ({ onBack, onSuccess }) => {
     setError(null);
   };
 
-  return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#f6f2e9_0%,#fffdf8_50%,#eef3fb_100%)] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[420px]">
-        <button
-          type="button"
-          onClick={step.kind === "2fa" ? handleCancel2FA : onBack}
-          className="mb-6 inline-flex items-center gap-2 text-[12px] font-semibold text-ink-tertiary hover:text-brand-deep"
-        >
-          <Icon name="chevronLeft" size={14} />
-          {step.kind === "2fa" ? "Kembali ke login" : "Kembali ke beranda"}
-        </button>
+  const logoSrc = appearance.assets.logo_url || appearance.assets.logo_mark_url;
+  const loginBg = appearance.assets.login_background_url;
+  const loginSettings = appearance.components.login || DEFAULT_APPEARANCE_TEMPLATE.components.login;
+  const isSplit = loginSettings.layout !== "center";
+  const showBrandPanel = isSplit && step.kind === "credentials";
+  const buttonBackground = loginSettings.button_background || "var(--ina-brand-primary, #0f1e3d)";
+  const bgOverlay =
+    loginSettings.background_overlay === "dark"
+      ? "linear-gradient(rgba(15,30,61,0.62), rgba(15,30,61,0.7))"
+      : loginSettings.background_overlay === "none"
+      ? ""
+      : "linear-gradient(rgba(255,255,255,0.74), rgba(255,255,255,0.82))";
+  const backgroundImage = loginBg
+    ? `${bgOverlay ? `${bgOverlay}, ` : ""}url(${loginBg})`
+    : undefined;
+  const backgroundSize = loginSettings.background_fit === "repeat" ? "auto" : loginSettings.background_fit;
+  const backgroundRepeat = loginSettings.background_fit === "repeat" ? "repeat" : "no-repeat";
+  const cardClass =
+    loginSettings.card_variant === "glass"
+      ? "rounded-[28px] border border-white/60 p-8 shadow-[0_24px_60px_rgba(15,30,61,0.12)] backdrop-blur-xl"
+      : "rounded-[28px] border border-line-cream p-8 shadow-[0_24px_60px_rgba(15,30,61,0.08)]";
 
-        <div className="rounded-[28px] border border-line-cream bg-white p-8 shadow-[0_24px_60px_rgba(15,30,61,0.08)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-deep text-white">
-              <Icon name={step.kind === "2fa" ? "shield" : "building"} size={20} />
+  const formPanel = (
+    <div className="w-full max-w-[420px]">
+      <button
+        type="button"
+        onClick={step.kind === "2fa" ? handleCancel2FA : onBack}
+        className="mb-6 inline-flex items-center gap-2 text-[12px] font-semibold text-ink-tertiary hover:text-brand-deep"
+      >
+        <Icon name="chevronLeft" size={14} />
+        {step.kind === "2fa" ? "Kembali ke login" : "Kembali ke beranda"}
+      </button>
+
+      <div
+        className={cardClass}
+        style={{
+          backgroundColor:
+            loginSettings.card_variant === "glass"
+              ? hexToRgba(loginSettings.card_background, 0.82)
+              : loginSettings.card_background,
+        }}
+      >
+        <div className="flex items-center gap-3">
+          {loginSettings.show_logo && (
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-brand-deep text-white">
+              {logoSrc && step.kind === "credentials" ? (
+                <img src={logoSrc} alt="" className="h-full w-full object-contain p-1.5" />
+              ) : (
+                <Icon name={step.kind === "2fa" ? "shield" : "building"} size={20} />
+              )}
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-                {step.kind === "2fa" ? "Verifikasi 2 faktor" : "Portal aplikasi"}
-              </div>
-              <div className="font-serif text-[1.3rem] tracking-[-0.02em] text-brand">
-                {step.kind === "2fa" ? "Masukkan kode" : "Masuk"}
-              </div>
-            </div>
-          </div>
-
-          {step.kind === "credentials" ? (
-            <>
-              <p className="mt-4 text-[13px] leading-6 text-ink-soft">
-                Gunakan akun yang telah diaktivasi oleh administrator. Hubungi admin
-                kalau belum punya akses.
-              </p>
-
-              <form onSubmit={handleSubmitCredentials} className="mt-6 space-y-4">
-                <Field label="Email" required>
-                  <TextInput
-                    type="email"
-                    value={identifier}
-                    onChange={setIdentifier}
-                    placeholder="nama@contoh.id"
-                  />
-                </Field>
-                <Field label="Kata Sandi" required>
-                  <TextInput
-                    type="password"
-                    value={password}
-                    onChange={setPassword}
-                    placeholder="Masukkan kata sandi"
-                  />
-                </Field>
-
-                {error && (
-                  <div className="rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[12px] text-status-dangerFg">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-deep px-4 py-3 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {submitting ? (
-                    <>
-                      <Icon name="spinner" size={14} className="animate-spin" /> Memverifikasi…
-                    </>
-                  ) : (
-                    <>
-                      Masuk <Icon name="arrowRight" size={14} />
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <p className="mt-4 text-[13px] leading-6 text-ink-soft">
-                Login untuk <strong className="text-brand">{step.identifier}</strong> memerlukan
-                verifikasi 2 faktor. Buka aplikasi authenticator Anda (Google Authenticator, Authy,
-                dll) dan masukkan kode 6 digit yang sedang aktif.
-              </p>
-
-              <form onSubmit={handleSubmit2FA} className="mt-6 space-y-4">
-                <Field label="Kode 6 digit" required>
-                  <TextInput
-                    value={code}
-                    onChange={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="123456"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                  />
-                </Field>
-
-                {error && (
-                  <div className="rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[12px] text-status-dangerFg">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting || code.length !== 6}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-deep px-4 py-3 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {submitting ? (
-                    <>
-                      <Icon name="spinner" size={14} className="animate-spin" /> Memverifikasi…
-                    </>
-                  ) : (
-                    <>
-                      Verifikasi <Icon name="arrowRight" size={14} />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className="mt-4 rounded-md border border-status-infoBorder bg-status-infoBg px-3 py-2 text-[11px] text-status-infoFg">
-                Kehilangan akses ke authenticator? Hubungi administrator untuk me-reset 2FA akun Anda.
-              </div>
-            </>
           )}
-
-          <div className="mt-6 border-t border-line-sand pt-4 text-center text-[11px] text-ink-muted">
-            Dengan masuk, Anda menyetujui ketentuan penggunaan layanan ini.
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+              {step.kind === "2fa" ? "Verifikasi 2 faktor" : loginSettings.eyebrow}
+            </div>
+            <div className="font-serif text-[1.3rem] tracking-[-0.02em] text-brand">
+              {step.kind === "2fa" ? "Masukkan kode" : loginSettings.title}
+            </div>
           </div>
         </div>
+
+        {step.kind === "credentials" ? (
+          <>
+            <p className="mt-4 text-[13px] leading-6 text-ink-soft">
+              {loginSettings.description}
+            </p>
+
+            <form onSubmit={handleSubmitCredentials} className="mt-6 space-y-4">
+              <Field label="Email" required>
+                <TextInput
+                  type="email"
+                  value={identifier}
+                  onChange={setIdentifier}
+                  placeholder="nama@contoh.id"
+                />
+              </Field>
+              <Field label="Kata Sandi" required>
+                <TextInput
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="Masukkan kata sandi"
+                />
+              </Field>
+
+              {error && (
+                <div className="rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[12px] text-status-dangerFg">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-deep px-4 py-3 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                style={{
+                  background: buttonBackground,
+                  color: loginSettings.button_text,
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Icon name="spinner" size={14} className="animate-spin" /> Memverifikasi…
+                  </>
+                ) : (
+                  <>
+                    {loginSettings.button_label} <Icon name="arrowRight" size={14} />
+                  </>
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-[13px] leading-6 text-ink-soft">
+              Login untuk <strong className="text-brand">{step.identifier}</strong> memerlukan
+              verifikasi 2 faktor. Buka aplikasi authenticator Anda (Google Authenticator, Authy,
+              dll) dan masukkan kode 6 digit yang sedang aktif.
+            </p>
+
+            <form onSubmit={handleSubmit2FA} className="mt-6 space-y-4">
+              <Field label="Kode 6 digit" required>
+                <TextInput
+                  value={code}
+                  onChange={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                />
+              </Field>
+
+              {error && (
+                <div className="rounded-md border border-status-dangerBorder bg-status-dangerBg px-3 py-2 text-[12px] text-status-dangerFg">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting || code.length !== 6}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-deep px-4 py-3 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                style={{
+                  background: buttonBackground,
+                  color: loginSettings.button_text,
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Icon name="spinner" size={14} className="animate-spin" /> Memverifikasi…
+                  </>
+                ) : (
+                  <>
+                    Verifikasi <Icon name="arrowRight" size={14} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-4 rounded-md border border-status-infoBorder bg-status-infoBg px-3 py-2 text-[11px] text-status-infoFg">
+              Kehilangan akses ke authenticator? Hubungi administrator untuk me-reset 2FA akun Anda.
+            </div>
+          </>
+        )}
+
+        <div className="mt-6 border-t border-line-sand pt-4 text-center text-[11px] text-ink-muted">
+          Dengan masuk, Anda menyetujui ketentuan penggunaan layanan ini.
+        </div>
+      </div>
+    </div>
+  );
+
+  const brandPanel = showBrandPanel ? (
+    <div className="hidden min-h-[620px] overflow-hidden rounded-[32px] bg-brand-deep text-white shadow-[0_26px_70px_rgba(15,30,61,0.16)] lg:block">
+      <div
+        className="flex h-full flex-col justify-end p-10"
+        style={
+          loginBg
+            ? {
+                backgroundImage: `linear-gradient(rgba(15,30,61,0.18), rgba(15,30,61,0.76)), url(${loginBg})`,
+                backgroundSize,
+                backgroundRepeat,
+                backgroundPosition: loginSettings.background_position,
+              }
+            : undefined
+        }
+      >
+        {logoSrc && loginSettings.show_logo && (
+          <img src={logoSrc} alt="" className="mb-auto max-h-14 max-w-[220px] object-contain brightness-0 invert" />
+        )}
+        <div className="max-w-[440px]">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">
+            {loginSettings.eyebrow}
+          </div>
+          <h1 className="mt-3 font-serif text-[2.5rem] leading-tight tracking-[-0.02em]">
+            {loginSettings.title}
+          </h1>
+          <p className="mt-4 text-[15px] leading-7 text-white/82">
+            {loginSettings.description}
+          </p>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#f6f2e9_0%,#fffdf8_50%,#eef3fb_100%)] bg-cover bg-center px-4 py-10"
+      style={
+        backgroundImage
+          ? {
+              backgroundImage,
+              backgroundSize,
+              backgroundRepeat,
+              backgroundPosition: loginSettings.background_position,
+            }
+          : undefined
+      }
+    >
+      <div className={isSplit ? "grid w-full max-w-[1120px] items-center gap-8 lg:grid-cols-2" : "w-full max-w-[420px]"}>
+        {loginSettings.layout === "split_left" && brandPanel}
+        <div className={isSplit ? "flex justify-center" : ""}>{formPanel}</div>
+        {loginSettings.layout === "split_right" && brandPanel}
       </div>
     </div>
   );

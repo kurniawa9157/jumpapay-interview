@@ -1,0 +1,288 @@
+:root {
+  --app-radius-control: 8px;
+  --app-radius-card: 8px;
+  --app-radius-modal: 12px;
+  --app-control-height-sm: 36px;
+  --app-control-height-md: 42px;
+  --app-control-height-lg: 48px;
+  --app-control-padding-x: 14px;
+  --app-card-shadow: none;
+}
+
+.app-density-compact {
+  --app-control-height-sm: 32px;
+  --app-control-height-md: 36px;
+  --app-control-height-lg: 42px;
+  --app-control-padding-x: 12px;
+}
+
+.app-density-spacious {
+  --app-control-height-sm: 40px;
+  --app-control-height-md: 48px;
+  --app-control-height-lg: 54px;
+  --app-control-padding-x: 16px;
+}
+
+.app-radius-none {
+  --app-radius-control: 0;
+  --app-radius-card: 0;
+  --app-radius-modal: 0;
+}
+
+.app-radius-sm {
+  --app-radius-control: 6px;
+  --app-radius-card: 6px;
+  --app-radius-modal: 8px;
+}
+
+.app-radius-md {
+  --app-radius-control: 8px;
+  --app-radius-card: 8px;
+  --app-radius-modal: 12px;
+}
+
+.app-radius-lg {
+  --app-radius-control: 12px;
+  --app-radius-card: 12px;
+  --app-radius-modal: 16px;
+}
+
+.app-radius-pill {
+  --app-radius-control: 999px;
+  --app-radius-card: 16px;
+  --app-radius-modal: 18px;
+}
+
+.app-button-square .ina-button {
+  border-radius: 0 !important;
+}
+
+.app-button-rounded .ina-button {
+  border-radius: var(--app-radius-control) !important;
+}
+
+.app-button-pill .ina-button {
+  border-radius: 999px !important;
+}
+
+.ina-button,
+.ina-text-field__input,
+.ina-select-dropdown__trigger,
+.ina-textarea__input,
+.app-input {
+  border-radius: var(--app-radius-control) !important;
+}
+
+.app-density-compact .ina-button,
+.app-density-compact .ina-text-field__input,
+.app-density-compact .ina-select-dropdown__trigger,
+.app-density-compact .app-input {
+  min-height: var(--app-control-height-sm) !important;
+}
+
+.app-density-spacious .ina-button,
+.app-density-spacious .ina-text-field__input,
+.app-density-spacious .ina-select-dropdown__trigger,
+.app-density-spacious .app-input {
+  min-height: var(--app-control-height-lg) !important;
+}
+
+.app-form-sm .ina-text-field__input,
+.app-form-sm .ina-select-dropdown__trigger,
+.app-form-sm .app-input {
+  min-height: 36px !important;
+  font-size: 13px !important;
+}
+
+.app-form-lg .ina-text-field__input,
+.app-form-lg .ina-select-dropdown__trigger,
+.app-form-lg .app-input {
+  min-height: 48px !important;
+  font-size: 15px !important;
+}
+
+.app-form-radius-none {
+  --app-radius-control: 0;
+}
+
+.app-form-radius-sm {
+  --app-radius-control: 6px;
+}
+
+.app-form-radius-md {
+  --app-radius-control: 8px;
+}
+
+.app-form-radius-lg {
+  --app-radius-control: 12px;
+}
+
+.app-form-radius-pill {
+  --app-radius-control: 999px;
+}
+
+.app-form-label-left .formkit-field {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 16px;
+}
+
+.app-form-label-left .formkit-label {
+  padding-top: 10px;
+}
+
+.app-form-label-left .formkit-control {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .app-form-label-left .formkit-field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-form-label-left .formkit-label {
+    padding-top: 0;
+  }
+}
+
+.app-tabs-pills .ina-tab-horizontal__tab,
+.app-tabs-pills .ina-tab-vertical__tab {
+  border-radius: 999px !important;
+}
+
+.app-tabs-boxed .ina-tab-horizontal,
+.app-tabs-boxed .ina-tab-vertical {
+  border: 1px solid var(--ina-stroke-primary);
+  border-radius: var(--app-radius-control);
+  padding: 4px;
+}
+
+.app-tabs-size-sm .ina-tab-horizontal__tab,
+.app-tabs-size-sm .ina-tab-vertical__tab {
+  min-height: 32px !important;
+  padding-inline: 12px !important;
+  font-size: 12px !important;
+}
+
+.app-tabs-size-lg .ina-tab-horizontal__tab,
+.app-tabs-size-lg .ina-tab-vertical__tab {
+  min-height: 44px !important;
+  padding-inline: 18px !important;
+  font-size: 14px !important;
+}
+
+.app-tabs-full .ina-tab-horizontal__tab {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+.app-tabs-neutral .ina-tab-horizontal__tab--active,
+.app-tabs-neutral .ina-tab-vertical__tab--active {
+  color: var(--ina-content-primary) !important;
+  border-color: var(--ina-stroke-primary) !important;
+}
+
+.app-table-bordered .ina-table {
+  border: 1px solid var(--ina-stroke-primary);
+}
+
+.app-table-compact .ina-table th,
+.app-table-compact .ina-table td,
+.app-table-compact .app-table-cell {
+  padding-block: 8px !important;
+}
+
+.app-table-spacious .ina-table th,
+.app-table-spacious .ina-table td,
+.app-table-spacious .app-table-cell {
+  padding-block: 16px !important;
+}
+
+.app-table-zebra .ina-table tbody tr:nth-child(even),
+.app-table-zebra .app-table-row:nth-child(even) {
+  background: var(--ina-background-tertiary);
+}
+
+.app-table-sticky .ina-table thead,
+.app-table-sticky .app-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.app-card-flat .ina-card,
+.app-card-flat .ina-card-plain {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-card-bordered .ina-card,
+.app-card-bordered .ina-card-plain {
+  border: 1px solid var(--ina-stroke-primary) !important;
+}
+
+.app-card-elevated .ina-card,
+.app-card-elevated .ina-card-plain {
+  box-shadow: 0 16px 42px rgb(var(--eppat-brand-rgb) / 0.12) !important;
+}
+
+.app-card-shadow-soft {
+  --app-card-shadow: 0 12px 30px rgb(var(--eppat-brand-rgb) / 0.08);
+}
+
+.app-card-shadow-strong {
+  --app-card-shadow: 0 18px 46px rgb(var(--eppat-brand-rgb) / 0.14);
+}
+
+.app-card-shadow-soft .ina-card,
+.app-card-shadow-strong .ina-card {
+  box-shadow: var(--app-card-shadow) !important;
+}
+
+.ina-card,
+.ina-card-plain {
+  border-radius: var(--app-radius-card) !important;
+}
+
+.app-card-radius-none {
+  --app-radius-card: 0;
+}
+
+.app-card-radius-sm {
+  --app-radius-card: 6px;
+}
+
+.app-card-radius-md {
+  --app-radius-card: 8px;
+}
+
+.app-card-radius-lg {
+  --app-radius-card: 14px;
+}
+
+.ina-modal__dialog {
+  border-radius: var(--app-radius-modal) !important;
+}
+
+.app-modal-size-sm .ina-modal__dialog {
+  max-width: 420px !important;
+}
+
+.app-modal-size-md .ina-modal__dialog {
+  max-width: 560px !important;
+}
+
+.app-modal-size-lg .ina-modal__dialog {
+  max-width: 760px !important;
+}
+
+.app-modal-size-xl .ina-modal__dialog {
+  max-width: 960px !important;
+}
+
+.app-modal-brand .ina-modal__header {
+  background: var(--ina-brand-primary);
+  color: white;
+}
