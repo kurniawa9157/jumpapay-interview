@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
-import { applyBrand, DEFAULT_BRAND, isValidEppatBrand } from './theme'
-import { getSystemTheme } from './api'
+import { applyAppearanceTemplate, applyBrand, DEFAULT_BRAND, isValidEppatBrand } from './theme'
+import { getSystemAppearance, getSystemTheme } from './api'
 import '@idds/styles'
+import './appearance.css'
 import './index.css'
 
 // Hydrate brand theme dari backend SEBELUM mount supaya tidak ada flash
@@ -13,6 +14,17 @@ import './index.css'
 // DEFAULT_BRAND. Timeout singkat 2 detik supaya app tetap responsif.
 async function hydrateTheme(): Promise<void> {
   applyBrand(DEFAULT_BRAND);
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    const appearance = await getSystemAppearance();
+    clearTimeout(timer);
+    applyAppearanceTemplate(appearance);
+    return;
+  } catch {
+    /* try legacy theme endpoint */
+  }
+
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 2000);

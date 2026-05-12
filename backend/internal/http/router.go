@@ -119,6 +119,7 @@ func NewRouter(d Deps) *gin.Engine {
 	systemGroup := v1.Group("/system")
 	{
 		systemGroup.GET("/theme", systemHandler.GetTheme)
+		systemGroup.GET("/appearance", systemHandler.GetAppearance)
 		systemGroup.GET("/snapshot", systemHandler.GetSnapshot)
 	}
 
@@ -210,12 +211,23 @@ func NewRouter(d Deps) *gin.Engine {
 			sys.PUT("/theme",
 				middleware.RequirePermission(d.PermissionChecker, domain.ModuleSystemSettings, domain.ActionEdit),
 				systemHandler.UpdateTheme)
+			sys.PUT("/appearance",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleSystemSettings, domain.ActionEdit),
+				systemHandler.UpdateAppearance)
 			sys.GET("/settings",
 				middleware.RequirePermission(d.PermissionChecker, domain.ModuleSystemSettings, domain.ActionView),
 				systemHandler.ListSettings)
 			sys.PUT("/settings",
 				middleware.RequirePermission(d.PermissionChecker, domain.ModuleSystemSettings, domain.ActionEdit),
 				systemHandler.BulkUpdateSettings)
+		}
+
+		// CMS appearance settings (brand, IDDS/custom theme, logo, component style).
+		cms := adminGroup.Group("/cms")
+		{
+			cms.PUT("/appearance",
+				middleware.RequirePermission(d.PermissionChecker, domain.ModuleContentMgmt, domain.ActionEdit),
+				systemHandler.UpdateAppearance)
 		}
 
 		// Templates (page/slider/menu/footer) + values + items.

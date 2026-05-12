@@ -6,6 +6,7 @@ import { AdminDashboard } from "./AdminDashboard";
 import { AdminDaftarUser } from "./AdminDaftarUser";
 import { AdminRoles } from "./AdminRoles";
 import { AdminPengaturan } from "./AdminPengaturan";
+import { AdminThemeSettings } from "./AdminThemeSettings";
 import { AdminLanding } from "./AdminLanding";
 import { AdminMasters } from "./AdminMasters";
 import { AdminPosts } from "./AdminPosts";
@@ -29,6 +30,7 @@ type AdminPage =
   | "peran"
   | "pengaturan"
   | "landing"
+  | "theme-settings"
   | "masters"
   | "posts"
   | "media";
@@ -37,8 +39,9 @@ const pageMeta: Record<AdminPage, { title: string; subtitle: string }> = {
   dashboard: { title: "Ringkasan", subtitle: "Dasbor admin" },
   "daftar-user": { title: "Daftar User", subtitle: "Kelola user sistem" },
   peran: { title: "Peran & Izin", subtitle: "RBAC per modul" },
-  pengaturan: { title: "Pengaturan Sistem", subtitle: "Tema & preferensi global" },
+  pengaturan: { title: "Pengaturan Sistem", subtitle: "Preferensi global aplikasi" },
   landing: { title: "Landing Page", subtitle: "Page builder layout" },
+  "theme-settings": { title: "Setting Theme", subtitle: "Brand, IDDS, logo, dan gaya komponen" },
   masters: { title: "Master Konten", subtitle: "Slider, Menu, Footer" },
   posts: { title: "Posts & Pages", subtitle: "Artikel, berita, halaman statis" },
   media: { title: "Media Library", subtitle: "Upload & kelola gambar / file" },
@@ -64,25 +67,26 @@ export const AdminLayout: React.FC<Props> = ({
 }) => {
   const navItems = useMemo<SidebarNavItem[]>(() => {
     const items: SidebarNavItem[] = [
-      { key: "dashboard", label: "Dasbor", icon: "dashboard" },
+      { key: "dashboard", label: "Dasbor", icon: "dashboard", group: "System" },
     ];
     if (canView(permissions, isSuperAdmin, "USER_MGMT")) {
-      items.push({ key: "daftar-user", label: "Daftar User", icon: "users" });
+      items.push({ key: "daftar-user", label: "Daftar User", icon: "users", group: "System" });
     }
     if (
       canView(permissions, isSuperAdmin, "ROLE_MGMT") ||
       canView(permissions, isSuperAdmin, "PERMISSION_MGMT")
     ) {
-      items.push({ key: "peran", label: "Peran & Izin", icon: "shield" });
+      items.push({ key: "peran", label: "Peran & Izin", icon: "shield", group: "System" });
     }
     if (canView(permissions, isSuperAdmin, "CONTENT_MGMT")) {
-      items.push({ key: "landing", label: "Landing Page", icon: "edit" });
-      items.push({ key: "masters", label: "Master Konten", icon: "list" });
-      items.push({ key: "posts", label: "Posts & Pages", icon: "file" });
-      items.push({ key: "media", label: "Media Library", icon: "image" });
+      items.push({ key: "landing", label: "Landing Page", icon: "edit", group: "CMS" });
+      items.push({ key: "theme-settings", label: "Setting Theme", icon: "settings", group: "CMS" });
+      items.push({ key: "masters", label: "Master Konten", icon: "list", group: "CMS" });
+      items.push({ key: "posts", label: "Posts & Pages", icon: "file", group: "CMS" });
+      items.push({ key: "media", label: "Media Library", icon: "image", group: "CMS" });
     }
     if (canView(permissions, isSuperAdmin, "SYSTEM_SETTINGS")) {
-      items.push({ key: "pengaturan", label: "Pengaturan", icon: "settings" });
+      items.push({ key: "pengaturan", label: "Pengaturan", icon: "settings", group: "System" });
     }
     return items;
   }, [permissions, isSuperAdmin]);
@@ -136,6 +140,7 @@ export const AdminLayout: React.FC<Props> = ({
         {page === "daftar-user" && <AdminDaftarUser />}
         {page === "peran" && <AdminRoles />}
         {page === "landing" && <AdminLanding />}
+        {page === "theme-settings" && <AdminThemeSettings />}
         {page === "masters" && <AdminMasters />}
         {page === "posts" && <AdminPosts />}
         {page === "media" && <AdminMediaLibrary />}

@@ -5,12 +5,13 @@ import {
   LandingAuthProvider,
   type LandingAuthState,
 } from "../components/LandingAuthContext";
-import { getPublicTemplateBySlug, ApiError } from "../api";
+import { getPublicTemplateBySlug, ApiError, authApi, tokenStore } from "../api";
 import type { BuilderComponent } from "../types/builder.types";
 import type { MeResponse } from "../api";
 
 interface Props {
   me: MeResponse | null;
+  onSessionHydrated?: (me: MeResponse) => void;
   onRequestLogin: () => void;
   onGoAdmin: () => void;
   onAccount: () => void;
@@ -39,6 +40,7 @@ const displayNameOf = (me: MeResponse): string => {
 // layout=[]), tampilkan empty state dengan CTA Masuk.
 export const RoleLanding: React.FC<Props> = ({
   me,
+  onSessionHydrated,
   onRequestLogin,
   onGoAdmin,
   onAccount,
@@ -46,19 +48,40 @@ export const RoleLanding: React.FC<Props> = ({
 }) => {
   const [layout, setLayout] = useState<BuilderComponent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sessionMe, setSessionMe] = useState<MeResponse | null>(null);
+  const effectiveMe = me ?? sessionMe;
 
   const auth = useMemo<LandingAuthState>(
     () => ({
-      loggedIn: !!me,
-      canEnterAdmin: !!me && (me.user.is_admin || hasAnyAdminPermission(me)),
-      displayName: me ? displayNameOf(me) : "",
+      loggedIn: !!effectiveMe,
+      canEnterAdmin:
+        !!effectiveMe && (effectiveMe.user.is_admin || hasAnyAdminPermission(effectiveMe)),
+      displayName: effectiveMe ? displayNameOf(effectiveMe) : "",
       onLogin: onRequestLogin,
       onGoAdmin,
       onAccount,
       onLogout,
     }),
-    [me, onRequestLogin, onGoAdmin, onAccount, onLogout],
+    [effectiveMe, onRequestLogin, onGoAdmin, onAccount, onLogout],
   );
+
+  useEffect(() => {
+    if (me || !tokenStore.getAccess()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await authApi.me();
+        if (cancelled) return;
+        setSessionMe(data);
+        onSessionHydrated?.(data);
+      } catch {
+        if (!cancelled) tokenStore.clear();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me, onSessionHydrated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +119,7 @@ export const RoleLanding: React.FC<Props> = ({
 
   // Empty state — tidak ada layout. Tampil minimal landing dengan CTA.
   if (layout && layout.length === 0) {
-    return <EmptyLanding onRequestLogin={onRequestLogin} error={error} />;
+    return <EmptyLanding auth={auth} error={error} />;
   }
 
   // Loading state.
@@ -147,95 +170,106 @@ const FloatingAuthButton: React.FC<{ auth: LandingAuthState }> = ({ auth }) => {
 
 // EmptyLanding — fallback ketika belum ada layout. Tetap functional dengan
 // hero + CTA Masuk. Admin bisa replace via builder.
-const EmptyLanding: React.FC<{ onRequestLogin: () => void; error: string | null }> = ({
-  onRequestLogin,
+const EmptyLanding: React.FC<{ auth: LandingAuthState; error: string | null }> = ({
+  auth,
   error,
-}) => (
-  <div className="min-h-screen bg-paper">
-    <header className="border-b border-line-sand bg-white">
-      <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deep text-white">
-            <Icon name="building" size={16} />
-          </span>
-          <div className="font-serif text-[1.05rem] tracking-[-0.02em] text-brand">
-            App Template
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onRequestLogin}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-deep px-4 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
-        >
-          <Icon name="user" size={14} />
-          Masuk
-        </button>
-      </div>
-    </header>
+}) => {
+  const label = !auth.loggedIn ? "Masuk" : auth.canEnterAdmin ? "Dasbor" : "Akun Saya";
+  const icon: "user" | "dashboard" = auth.loggedIn && auth.canEnterAdmin ? "dashboard" : "user";
+  const handleAuth = !auth.loggedIn
+    ? auth.onLogin
+    : auth.canEnterAdmin
+    ? auth.onGoAdmin
+    : auth.onAccount;
 
-    <main className="mx-auto max-w-[1100px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-      <section className="rounded-[24px] border border-line-sand bg-white px-6 py-12 text-center shadow-[0_18px_45px_rgba(15,30,61,0.04)] sm:px-10 sm:py-16">
-        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-accent">
-          Foundation Template
-        </div>
-        <h1 className="mt-3 font-serif text-[2.2rem] leading-tight tracking-[-0.02em] text-brand sm:text-[2.6rem]">
-          Halaman ini siap <span className="text-accent">dikustomisasi</span>
-        </h1>
-        <p className="mx-auto mt-5 max-w-[620px] text-[15px] leading-7 text-ink-soft">
-          Login sebagai admin untuk menyusun landing dengan builder visual —
-          tambahkan navbar, slider, card grid, footer, dan lainnya tanpa edit code.
-        </p>
-        {error && (
-          <p className="mx-auto mt-4 max-w-[480px] text-[12px] text-status-warnFg">
-            {error}
-          </p>
-        )}
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
+  return (
+    <div className="min-h-screen bg-paper">
+      <header className="border-b border-line-sand bg-white">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deep text-white">
+              <Icon name="building" size={16} />
+            </span>
+            <div className="font-serif text-[1.05rem] tracking-[-0.02em] text-brand">
+              App Template
+            </div>
+          </div>
           <button
             type="button"
-            onClick={onRequestLogin}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-deep px-5 py-3 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(15,30,61,0.18)] transition hover:-translate-y-0.5"
+            onClick={handleAuth}
+            className="inline-flex items-center gap-2 rounded-md bg-brand-deep px-4 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
           >
-            Masuk untuk mulai membangun <Icon name="arrowRight" size={14} />
+            <Icon name={icon} size={14} />
+            {label}
           </button>
         </div>
-      </section>
+      </header>
 
-      <section className="mt-10 grid gap-4 sm:grid-cols-3">
-        {[
-          {
-            icon: "shield" as const,
-            title: "Auth + RBAC",
-            desc: "JWT, role-permission matrix, 2FA TOTP, audit log.",
-          },
-          {
-            icon: "users" as const,
-            title: "User Management",
-            desc: "CRUD user, suspend/activate, reset password, role assignment.",
-          },
-          {
-            icon: "sparkle" as const,
-            title: "Page Builder + IDDS",
-            desc: "Builder visual 7 block, brand theme switcher, dark mode-ready.",
-          },
-        ].map((f) => (
-          <div key={f.title} className="rounded-[16px] border border-line-sand bg-white p-5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-paper-cream text-brand-deep">
-              <Icon name={f.icon} size={16} />
-            </span>
-            <h3 className="mt-3 font-serif text-[1.05rem] tracking-[-0.01em] text-brand">
-              {f.title}
-            </h3>
-            <p className="mt-1.5 text-[13px] leading-6 text-ink-soft">{f.desc}</p>
+      <main className="mx-auto max-w-[1100px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <section className="rounded-[24px] border border-line-sand bg-white px-6 py-12 text-center shadow-[0_18px_45px_rgba(15,30,61,0.04)] sm:px-10 sm:py-16">
+          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-accent">
+            Foundation Template
           </div>
-        ))}
-      </section>
-    </main>
+          <h1 className="mt-3 font-serif text-[2.2rem] leading-tight tracking-[-0.02em] text-brand sm:text-[2.6rem]">
+            Halaman ini siap <span className="text-accent">dikustomisasi</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-[620px] text-[15px] leading-7 text-ink-soft">
+            Login sebagai admin untuk menyusun landing dengan builder visual —
+            tambahkan navbar, slider, card grid, footer, dan lainnya tanpa edit code.
+          </p>
+          {error && (
+            <p className="mx-auto mt-4 max-w-[480px] text-[12px] text-status-warnFg">
+              {error}
+            </p>
+          )}
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleAuth}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-deep px-5 py-3 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(15,30,61,0.18)] transition hover:-translate-y-0.5"
+            >
+              {auth.loggedIn ? label : "Masuk untuk mulai membangun"}
+              <Icon name="arrowRight" size={14} />
+            </button>
+          </div>
+        </section>
 
-    <footer className="border-t border-line-sand bg-white">
-      <div className="mx-auto max-w-[1200px] px-4 py-5 text-center text-[11px] text-ink-muted sm:px-6 lg:px-8">
-        Template foundation — siap dikustomisasi sesuai kebutuhan project Anda.
-      </div>
-    </footer>
-  </div>
-);
+        <section className="mt-10 grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: "shield" as const,
+              title: "Auth + RBAC",
+              desc: "JWT, role-permission matrix, 2FA TOTP, audit log.",
+            },
+            {
+              icon: "users" as const,
+              title: "User Management",
+              desc: "CRUD user, suspend/activate, reset password, role assignment.",
+            },
+            {
+              icon: "sparkle" as const,
+              title: "Page Builder + IDDS",
+              desc: "Builder visual 7 block, brand theme switcher, dark mode-ready.",
+            },
+          ].map((f) => (
+            <div key={f.title} className="rounded-[16px] border border-line-sand bg-white p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-paper-cream text-brand-deep">
+                <Icon name={f.icon} size={16} />
+              </span>
+              <h3 className="mt-3 font-serif text-[1.05rem] tracking-[-0.01em] text-brand">
+                {f.title}
+              </h3>
+              <p className="mt-1.5 text-[13px] leading-6 text-ink-soft">{f.desc}</p>
+            </div>
+          ))}
+        </section>
+      </main>
+
+      <footer className="border-t border-line-sand bg-white">
+        <div className="mx-auto max-w-[1200px] px-4 py-5 text-center text-[11px] text-ink-muted sm:px-6 lg:px-8">
+          Template foundation — siap dikustomisasi sesuai kebutuhan project Anda.
+        </div>
+      </footer>
+    </div>
+  );
+};
