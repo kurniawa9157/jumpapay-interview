@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { RoleLanding } from "./pages/RoleLanding";
+import { PublicPage } from "./pages/PublicPage";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AccountLayout } from "./pages/account/AccountLayout";
@@ -41,16 +42,27 @@ const adminSessionFromMe = (me: MeResponse): AdminSession => ({
   avatarInitial: (me.user.first_name?.[0] || "A").toUpperCase(),
 });
 
-// Parse current URL pathname → { kind, slug }. Default 'home' untuk
-// path yang tidak match. Saat ini hanya mendukung /p/<slug> untuk post
-// detail; semua path lain dianggap home/landing.
+// Parse current URL pathname → { kind, slug }. 
+// /p/<slug>  → post detail
+// /<slug>    → public page (template by slug)
+// /          → home landing
 type ParsedPath =
   | { kind: "home" }
-  | { kind: "post"; slug: string };
+  | { kind: "post"; slug: string }
+  | { kind: "page"; slug: string };
+
+// Slug yang dipakai internal SPA — jangan diroute ke PublicPage.
+const RESERVED_PATHS = ["/login", "/admin", "/account", "/p"];
 
 const parsePath = (pathname: string): ParsedPath => {
-  const m = pathname.match(/^\/p\/([^/?#]+)$/);
-  if (m) return { kind: "post", slug: decodeURIComponent(m[1]) };
+  const postMatch = pathname.match(/^\/p\/([^/?#]+)$/);
+  if (postMatch) return { kind: "post", slug: decodeURIComponent(postMatch[1]) };
+  if (pathname === "/" || pathname === "") return { kind: "home" };
+  // Cek reserved paths
+  if (RESERVED_PATHS.some((r) => pathname === r || pathname.startsWith(r + "/"))) return { kind: "home" };
+  // Semua path /<slug> dianggap public page
+  const pageMatch = pathname.match(/^\/([^/?#]+)$/);
+  if (pageMatch) return { kind: "page", slug: pathname };
   return { kind: "home" };
 };
 
@@ -122,8 +134,13 @@ function App() {
         href.startsWith("tel:") ||
         href.startsWith("#")
       ) return;
-      // Hanya pattern yang kita kenal: /p/<slug> dan /
-      if (href === "/" || /^\/p\//.test(href)) {
+      // Intercept semua link internal SPA: /, /p/<slug>, /<slug>
+      // Skip reserved paths yang dihandle di luar SPA routing.
+      if (
+        href === "/" ||
+        /^\/p\//.test(href) ||
+        (/^\/[^/?#]+$/.test(href) && !RESERVED_PATHS.some((r) => href === r || href.startsWith(r + "/")))
+      ) {
         e.preventDefault();
         window.history.pushState({}, "", href);
         setPathname(href);
@@ -177,6 +194,21 @@ function App() {
         onRequestLogin={() => setView("login")}
         onGoAdmin={() => setView("admin")}
         onAccount={() => setView("account")}
+      />
+    );
+  }
+
+  // Public page by slug (e.g. /pengumuman, /kontak)
+  if (parsed.kind === "page" && view !== "login") {
+    return (
+      <PublicPage
+        slug={parsed.slug}
+        me={me}
+        onRequestLogin={() => setView("login")}
+        onGoAdmin={() => setView("admin")}
+        onAccount={() => setView("account")}
+        onLogout={handleLogout}
+        onHome={navigateHome}
       />
     );
   }

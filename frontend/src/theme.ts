@@ -395,14 +395,14 @@ export const AVAILABLE_BRANDS: {
   hint?: string;
   swatch: string;
 }[] = [
-  { value: "atrbpn",  label: "ATR/BPN",      swatch: "#0f1e3d", hint: "Default — palet resmi e-PPAT" },
-  { value: "default", label: "IDDS Default", swatch: "#06264d" },
-  { value: "inagov",  label: "INA Gov",      swatch: "#629cef" },
-  { value: "inaku",   label: "INA Ku",       swatch: "#06264d" },
-  { value: "bgn",     label: "BGN",          swatch: "#0058ff" },
-  { value: "bkn",     label: "BKN",          swatch: "#de1d5e" },
-  { value: "lan",     label: "LAN",          swatch: "#2663a3" },
-  { value: "panrb",   label: "PAN-RB",       swatch: "#b42b2d" },
+  { value: "atrbpn",  label: "Navy Dark",    swatch: "#0f1e3d", hint: "Biru navy gelap — default template" },
+  { value: "default", label: "Navy Blue",    swatch: "#06264d", hint: "Biru navy standar IDDS" },
+  { value: "inagov",  label: "Sky Blue",     swatch: "#629cef", hint: "Biru langit cerah" },
+  { value: "inaku",   label: "Deep Blue",    swatch: "#06264d", hint: "Biru dalam" },
+  { value: "bgn",     label: "Royal Blue",   swatch: "#0058ff", hint: "Biru royal" },
+  { value: "bkn",     label: "Crimson",      swatch: "#de1d5e", hint: "Merah krimson" },
+  { value: "lan",     label: "Steel Blue",   swatch: "#2663a3", hint: "Biru baja" },
+  { value: "panrb",   label: "Burgundy",     swatch: "#b42b2d", hint: "Merah burgundy" },
 ];
 
 export function isValidEppatBrand(v: string): v is EppatBrand {

@@ -7,10 +7,11 @@ import react from '@vitejs/plugin-react-swc'
 // localhost:8080.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const backend = env.VITE_BACKEND_URL || 'http://localhost:8080'
+  const backend = env.VITE_BACKEND_URL || 'http://localhost:8088'
   return {
     plugins: [react()],
     server: {
+      port: 5179,
       proxy: {
         '/api': { target: backend, changeOrigin: true },
         '/uploads': { target: backend, changeOrigin: true },

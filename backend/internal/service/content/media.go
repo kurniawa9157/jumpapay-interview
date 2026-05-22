@@ -93,7 +93,7 @@ func (s *MediaService) Upload(ctx context.Context, fh *multipart.FileHeader, upl
 	}
 
 	// Save original ke storage.
-	originalKey := "uploads/" + filename
+	originalKey := filename
 	if err := s.storage.Save(ctx, originalKey, bytes.NewReader(rawBytes), mime); err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (s *MediaService) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 	// hapus file + thumbnail (best-effort), lalu row DB.
-	_ = s.storage.Delete(ctx, "uploads/"+m.Filename)
+	_ = s.storage.Delete(ctx, m.Filename)
 	if m.HasThumbnails {
 		s.removeThumbnails(ctx, m.Filename)
 	}
@@ -175,7 +175,7 @@ func (s *MediaService) uploadThumbnails(ctx context.Context, raw []byte, filenam
 		if err := imaging.Encode(&buf, resized, imaging.JPEG, imaging.JPEGQuality(85)); err != nil {
 			return fmt.Errorf("encode %s: %w", sz.prefix, err)
 		}
-		key := "uploads/" + sz.prefix + "/" + filename
+		key := sz.prefix + "/" + filename
 		if err := s.storage.Save(ctx, key, &buf, "image/jpeg"); err != nil {
 			return fmt.Errorf("save %s: %w", sz.prefix, err)
 		}
@@ -186,7 +186,7 @@ func (s *MediaService) uploadThumbnails(ctx context.Context, raw []byte, filenam
 // removeThumbnails — best-effort hapus 3 variant. Ignore per-file error.
 func (s *MediaService) removeThumbnails(ctx context.Context, filename string) {
 	for _, sz := range thumbSizes {
-		_ = s.storage.Delete(ctx, "uploads/"+sz.prefix+"/"+filename)
+		_ = s.storage.Delete(ctx, sz.prefix+"/"+filename)
 	}
 }
 
@@ -194,11 +194,11 @@ func (s *MediaService) removeThumbnails(ctx context.Context, filename string) {
 // Untuk LocalStorage akan return "/uploads/...", untuk S3Storage absolute
 // "https://...". Frontend tidak perlu peduli backend mana.
 func (s *MediaService) fillURLs(m *domain.MediaFile) {
-	m.URL = s.storage.URL("uploads/" + m.Filename)
+	m.URL = s.storage.URL(m.Filename)
 	if m.HasThumbnails {
-		m.URLThumb = s.storage.URL("uploads/thumb/" + m.Filename)
-		m.URLMedium = s.storage.URL("uploads/medium/" + m.Filename)
-		m.URLLarge = s.storage.URL("uploads/large/" + m.Filename)
+		m.URLThumb = s.storage.URL("thumb/" + m.Filename)
+		m.URLMedium = s.storage.URL("medium/" + m.Filename)
+		m.URLLarge = s.storage.URL("large/" + m.Filename)
 	} else {
 		m.URLThumb = m.URL
 		m.URLMedium = m.URL
