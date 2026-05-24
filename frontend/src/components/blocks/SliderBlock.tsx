@@ -14,9 +14,26 @@ export function SliderBlock({ props: p }: { props: Record<string, unknown> }) {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [current, setCurrent] = useState(0);
 
+  // Inline slides[] di props sebagai fallback (untuk hasil import builder
+  // eksternal yg belum punya master template, atau kalau master sengaja
+  // dikosongkan). Field name JSON ekspor: image/title/subtitle/ctaUrl —
+  // mapped di sini supaya kompatibel dgn shape SlideItem master.
+  const inlineSlides: SlideItem[] = Array.isArray(p.slides)
+    ? (p.slides as any[]).map((s) => ({
+        image_url: s?.image_url ?? s?.image ?? "",
+        caption: s?.caption ?? s?.title ?? "",
+        subtitle: s?.subtitle ?? "",
+        link: s?.link ?? s?.ctaUrl ?? "",
+      }))
+    : [];
+
   useEffect(() => {
     const sliderId = p.slider_id as string | undefined;
-    if (!sliderId) return;
+    if (!sliderId) {
+      // Tidak ada master ID — pakai inline slides[] kalau ada.
+      setSlides(inlineSlides);
+      return;
+    }
     getPublicTemplateByID(sliderId)
       .then((tpl) => {
         const items = (tpl.values || [])
@@ -29,9 +46,13 @@ export function SliderBlock({ props: p }: { props: Record<string, unknown> }) {
               return { image_url: v.value } as SlideItem;
             }
           });
-        setSlides(items);
+        setSlides(items.length > 0 ? items : inlineSlides);
       })
-      .catch(() => {});
+      .catch(() => {
+        // Master tidak ditemukan / network error → fallback ke inline.
+        setSlides(inlineSlides);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.slider_id]);
 
   const next = useCallback(
