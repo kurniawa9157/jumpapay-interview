@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@idds/react";
 import { ApiError, adminListMedia, adminUploadMedia, getSystemAppearance, updateSystemAppearance } from "../../api";
 import { Icon } from "../../components/Icon";
-import { applyAppearanceTemplate, AVAILABLE_BRANDS, getPresetAppearanceColors, type EppatBrand } from "../../theme";
+import { applyAppearanceTemplate, AVAILABLE_BRANDS, getPresetAppearanceColors, type JumpaPayBrand } from "../../theme";
 import type { MediaFile } from "../../types/cms";
 import {
   DEFAULT_APPEARANCE_TEMPLATE,
@@ -78,7 +78,7 @@ function withCustom(template: AppearanceTemplate, colors?: AppearanceColors): Ap
   };
 }
 
-function withPresetColors(template: AppearanceTemplate, brand: EppatBrand): AppearanceTemplate {
+function withPresetColors(template: AppearanceTemplate, brand: JumpaPayBrand): AppearanceTemplate {
   return {
     ...template,
     preset_brand: brand,

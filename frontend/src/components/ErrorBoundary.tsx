@@ -25,9 +25,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   handleClearAndReload = () => {
     try {
-      localStorage.removeItem("eppat-ppat");
-      localStorage.removeItem("eppat-pihak");
-      localStorage.removeItem("eppat-role");
+      localStorage.removeItem("jumpapay-ppat");
+      localStorage.removeItem("jumpapay-pihak");
+      localStorage.removeItem("jumpapay-role");
     } catch {
       // ignore
     }

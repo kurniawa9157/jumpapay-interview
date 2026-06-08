@@ -6,8 +6,8 @@ export const useMockApi = (env.VITE_USE_MOCK_API ?? "true") !== "false";
 
 // --- Token storage (localStorage) ---
 
-const ACCESS_KEY = "eppat-access-token";
-const REFRESH_KEY = "eppat-refresh-token";
+const ACCESS_KEY = "jumpapay-access-token";
+const REFRESH_KEY = "jumpapay-refresh-token";
 
 export const tokenStore = {
   getAccess: (): string | null => {

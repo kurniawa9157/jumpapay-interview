@@ -1,15 +1,15 @@
 import { request } from "./client";
-import type { EppatBrand } from "../theme";
+import type { JumpaPayBrand } from "../theme";
 import type { AppearanceTemplate } from "../types/appearance.types";
 
 // GET /system/theme — public, dipanggil sebelum login untuk hydrate tema.
-export const getSystemTheme = async (): Promise<{ brand: EppatBrand }> => {
-  return request<{ brand: EppatBrand }>("/system/theme", { skipAuth: true });
+export const getSystemTheme = async (): Promise<{ brand: JumpaPayBrand }> => {
+  return request<{ brand: JumpaPayBrand }>("/system/theme", { skipAuth: true });
 };
 
 // PUT /admin/system/theme — admin only (permission SYSTEM_SETTINGS edit).
-export const updateSystemTheme = async (brand: EppatBrand): Promise<{ brand: EppatBrand }> => {
-  return request<{ brand: EppatBrand }>("/admin/system/theme", {
+export const updateSystemTheme = async (brand: JumpaPayBrand): Promise<{ brand: JumpaPayBrand }> => {
+  return request<{ brand: JumpaPayBrand }>("/admin/system/theme", {
     method: "PUT",
     body: { brand },
   });

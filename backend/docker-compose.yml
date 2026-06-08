@@ -1,29 +1,29 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: eppat-postgres
+    container_name: jumpapay-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-      POSTGRES_DB: ${DB_NAME:-eppat}
+      POSTGRES_DB: ${DB_NAME:-jumpapay}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - eppat_pg_data:/var/lib/postgresql/data
+      - jumpapay_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-eppat}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-jumpapay}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: eppat-redis
+    container_name: jumpapay-redis
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - eppat_redis_data:/data
+      - jumpapay_redis_data:/data
 
 volumes:
-  eppat_pg_data:
-  eppat_redis_data:
+  jumpapay_pg_data:
+  jumpapay_redis_data:

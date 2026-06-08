@@ -1,4 +1,4 @@
-import type { EppatBrand } from "../theme";
+import type { JumpaPayBrand } from "../theme";
 
 export type AppearanceMode = "preset" | "custom";
 export type AppearanceDensity = "compact" | "comfortable" | "spacious";
@@ -7,7 +7,7 @@ export type AppearanceRadius = "none" | "sm" | "md" | "lg" | "pill";
 export interface AppearanceTemplate {
   version: 1;
   mode: AppearanceMode;
-  preset_brand: EppatBrand;
+  preset_brand: JumpaPayBrand;
   custom: AppearanceCustomTheme | null;
   assets: AppearanceAssets;
   components: AppearanceComponentSettings;

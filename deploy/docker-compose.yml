@@ -1,4 +1,4 @@
-# Stack deployment e-PPAT.
+# Stack deployment JumpaPay.
 # Dijalankan dari direktori deploy/ dengan: docker compose --env-file .env up -d
 # Lihat README.md untuk panduan lengkap.
 #
@@ -10,7 +10,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: eppat-postgres
+    container_name: jumpapay-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -29,7 +29,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: eppat-redis
+    container_name: jumpapay-redis
     restart: unless-stopped
     command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
@@ -44,7 +44,7 @@ services:
   # Service one-shot: keluar 0 jika sukses.
   migrate:
     image: migrate/migrate:4
-    container_name: eppat-migrate
+    container_name: jumpapay-migrate
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,8 +62,8 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: eppat-backend:${IMAGE_TAG:-latest}
-    container_name: eppat-seed
+    image: jumpapay-backend:${IMAGE_TAG:-latest}
+    container_name: jumpapay-seed
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -87,8 +87,8 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: eppat-backend:${IMAGE_TAG:-latest}
-    container_name: eppat-backend
+    image: jumpapay-backend:${IMAGE_TAG:-latest}
+    container_name: jumpapay-backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -143,8 +143,8 @@ services:
         # yang proxy /api ke backend. Override kalau deploy split-origin.
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
         VITE_USE_MOCK_API: "false"
-    image: eppat-frontend:${IMAGE_TAG:-latest}
-    container_name: eppat-frontend
+    image: jumpapay-frontend:${IMAGE_TAG:-latest}
+    container_name: jumpapay-frontend
     restart: unless-stopped
     depends_on:
       backend:
@@ -159,12 +159,12 @@ services:
 
 volumes:
   pg_data:
-    name: eppat_pg_data
+    name: jumpapay_pg_data
   redis_data:
-    name: eppat_redis_data
+    name: jumpapay_redis_data
   uploads_data:
-    name: eppat_uploads
+    name: jumpapay_uploads
 
 networks:
   default:
-    name: eppat-net
+    name: jumpapay-net

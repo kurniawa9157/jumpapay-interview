@@ -53,9 +53,9 @@ export default {
         // modifier (bg-brand-deep/10, ring-brand-deep/15, dll) bisa dikomposisi.
         // Triplet RGB di-set runtime di theme.ts (ikut brand switch).
         brand: {
-          DEFAULT: 'rgb(var(--eppat-brand-rgb) / <alpha-value>)',
-          deep:    'rgb(var(--eppat-brand-rgb) / <alpha-value>)',
-          dark:    'rgb(var(--eppat-brand-hover-rgb) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--jumpapay-brand-rgb) / <alpha-value>)',
+          deep:    'rgb(var(--jumpapay-brand-rgb) / <alpha-value>)',
+          dark:    'rgb(var(--jumpapay-brand-hover-rgb) / <alpha-value>)',
         },
         // Accent (pink magenta) — tetap hex, belum di-bridge.
         accent: {
@@ -71,19 +71,19 @@ export default {
         // sky / mint tetap hex (varian khusus).
         paper: {
           DEFAULT: 'var(--ina-background-primary)',
-          cream:   'rgb(var(--eppat-paper-cream-rgb) / <alpha-value>)',
-          vanilla: 'rgb(var(--eppat-paper-vanilla-rgb) / <alpha-value>)',
+          cream:   'rgb(var(--jumpapay-paper-cream-rgb) / <alpha-value>)',
+          vanilla: 'rgb(var(--jumpapay-paper-vanilla-rgb) / <alpha-value>)',
           sky:     '#eef3fb',
           mint:    '#edf8f5',
         },
         // Line (border) — pakai rgb(var / alpha).
         line: {
-          cream:     'rgb(var(--eppat-line-sand-dark-rgb) / <alpha-value>)',
-          sand:      'rgb(var(--eppat-line-sand-rgb) / <alpha-value>)',
-          sandDark:  'rgb(var(--eppat-line-sand-dark-rgb) / <alpha-value>)',
+          cream:     'rgb(var(--jumpapay-line-sand-dark-rgb) / <alpha-value>)',
+          sand:      'rgb(var(--jumpapay-line-sand-rgb) / <alpha-value>)',
+          sandDark:  'rgb(var(--jumpapay-line-sand-dark-rgb) / <alpha-value>)',
           skyLight:  '#dae3f1',
           mintLight: '#d7e8e2',
-          cream2:    'rgb(var(--eppat-line-sand-rgb) / <alpha-value>)',
+          cream2:    'rgb(var(--jumpapay-line-sand-rgb) / <alpha-value>)',
         },
         // Status palette — semantic, TIDAK ikut brand switch (sengaja).
         status: {

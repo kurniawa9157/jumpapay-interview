@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
-import { applyAppearanceTemplate, applyBrand, DEFAULT_BRAND, isValidEppatBrand } from './theme'
+import { applyAppearanceTemplate, applyBrand, DEFAULT_BRAND, isValidJumpaPayBrand } from './theme'
 import { getSystemAppearance, getSystemTheme } from './api'
 import '@idds/styles'
 import './appearance.css'
@@ -30,7 +30,7 @@ async function hydrateTheme(): Promise<void> {
     const timer = setTimeout(() => ctrl.abort(), 2000);
     const { brand } = await getSystemTheme();
     clearTimeout(timer);
-    if (isValidEppatBrand(brand)) applyBrand(brand);
+    if (isValidJumpaPayBrand(brand)) applyBrand(brand);
   } catch {
     /* keep default */
   }

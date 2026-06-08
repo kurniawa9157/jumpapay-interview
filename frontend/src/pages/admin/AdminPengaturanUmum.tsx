@@ -113,7 +113,7 @@ export const AdminPengaturanUmum: React.FC = () => {
               <TextInput
                 value={form.app_name}
                 onChange={(v) => set("app_name", v)}
-                placeholder="e-PPAT"
+                placeholder="JumpaPay"
               />
             </Field>
             <Field label="Zona Waktu" hint="Format IANA, mis. Asia/Jakarta">

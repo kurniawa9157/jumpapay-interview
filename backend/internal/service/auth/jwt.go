@@ -41,7 +41,7 @@ func NewJWTService(secret string, accessTTL, refreshTTL time.Duration) *JWTServi
 		secret:     []byte(secret),
 		accessTTL:  accessTTL,
 		refreshTTL: refreshTTL,
-		issuer:     "eppat-backend",
+		issuer:     "jumpapay-backend",
 	}
 }
 

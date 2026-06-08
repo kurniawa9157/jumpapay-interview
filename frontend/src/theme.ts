@@ -22,9 +22,9 @@ import {
 } from "./types/appearance.types";
 
 // 'atrbpn' adalah opsi custom kita. Sisanya = BrandName IDDS.
-export type EppatBrand = "atrbpn" | BrandName;
+export type JumpaPayBrand = "atrbpn" | BrandName;
 
-export const DEFAULT_BRAND: EppatBrand = "atrbpn";
+export const DEFAULT_BRAND: JumpaPayBrand = "atrbpn";
 
 // Palet ATR/BPN — mapping dari tailwind.config.js ke CSS var IDDS.
 // Setelah "bridge Tailwind" (tailwind.config.js color pakai var(--ina-*)),
@@ -90,12 +90,12 @@ const NEUTRAL_BASE_KEYS = [
 // apply opacity ke var() solid color — harus format `rgb(R G B / <alpha>)`.
 // Jadi kita sediakan var paralel yang berisi triplet RGB.
 const ATRBPN_RGB: Record<string, string> = {
-  "--eppat-brand-rgb": "15 30 61",          // #0f1e3d (brand-primary / brand-deep)
-  "--eppat-brand-hover-rgb": "16 36 79",    // #10244f
-  "--eppat-paper-cream-rgb": "246 242 233", // #f6f2e9
-  "--eppat-paper-vanilla-rgb": "253 251 245", // #fdfbf5
-  "--eppat-line-sand-rgb": "222 214 199",   // #ded6c7
-  "--eppat-line-sand-dark-rgb": "217 209 191", // #d9d1bf
+  "--jumpapay-brand-rgb": "15 30 61",          // #0f1e3d (brand-primary / brand-deep)
+  "--jumpapay-brand-hover-rgb": "16 36 79",    // #10244f
+  "--jumpapay-paper-cream-rgb": "246 242 233", // #f6f2e9
+  "--jumpapay-paper-vanilla-rgb": "253 251 245", // #fdfbf5
+  "--jumpapay-line-sand-rgb": "222 214 199",   // #ded6c7
+  "--jumpapay-line-sand-dark-rgb": "217 209 191", // #d9d1bf
 };
 
 function hexToRgbTriplet(hex: string): string | null {
@@ -143,15 +143,15 @@ function applyAtrbpnRgbTriplets() {
   }
 }
 
-// mirrorBrandRgb — override --eppat-brand-rgb dengan hex brand IDDS aktif
+// mirrorBrandRgb — override --jumpapay-brand-rgb dengan hex brand IDDS aktif
 // (convert hex → RGB triplet). Content/bg/stroke RGB tetap atrbpn (readability).
 function mirrorBrandRgb(brand: string) {
   const hex = readFirstDefinedVar(BRAND_PRIMARY_SOURCES, brand);
   if (!hex) return;
   const triplet = hexToRgbTriplet(hex);
   if (triplet) {
-    setVar("--eppat-brand-rgb", triplet);
-    setVar("--eppat-brand-hover-rgb", triplet);
+    setVar("--jumpapay-brand-rgb", triplet);
+    setVar("--jumpapay-brand-hover-rgb", triplet);
   }
 }
 
@@ -194,7 +194,7 @@ function mirrorIddsBrandVars(brand: string) {
 
 // applyBrand — terapkan pilihan brand ke <html>. Idempotent, aman dipanggil
 // beberapa kali (misal saat admin ganti preferensi).
-export function applyBrand(brand: EppatBrand) {
+export function applyBrand(brand: JumpaPayBrand) {
   if (brand === "atrbpn") {
     // setCustomTheme IDDS internally pakai setProperty tanpa priority.
     // Untuk var yang IDDS default-nya pakai !important (--ina-brand-hover),
@@ -232,7 +232,7 @@ const COLOR_VAR_MAP: Record<keyof AppearanceColors, string> = {
   stroke_secondary: "--ina-stroke-secondary",
 };
 
-export function getPresetAppearanceColors(brand: EppatBrand): AppearanceColors {
+export function getPresetAppearanceColors(brand: JumpaPayBrand): AppearanceColors {
   applyBrand(brand);
   return {
     brand_primary: readRequiredVar("--ina-brand-primary", atrbpnTheme.colors["--ina-brand-primary"]!),
@@ -269,12 +269,12 @@ function applyCustomColors(colors: AppearanceColors) {
     setOptionalVar(target, colors[source as keyof AppearanceColors]);
   }
 
-  setOptionalRgb("--eppat-brand-rgb", colors.brand_primary);
-  setOptionalRgb("--eppat-brand-hover-rgb", colors.brand_hover);
-  setOptionalRgb("--eppat-paper-cream-rgb", colors.background_secondary);
-  setOptionalRgb("--eppat-paper-vanilla-rgb", colors.background_tertiary);
-  setOptionalRgb("--eppat-line-sand-rgb", colors.stroke_primary);
-  setOptionalRgb("--eppat-line-sand-dark-rgb", colors.stroke_secondary);
+  setOptionalRgb("--jumpapay-brand-rgb", colors.brand_primary);
+  setOptionalRgb("--jumpapay-brand-hover-rgb", colors.brand_hover);
+  setOptionalRgb("--jumpapay-paper-cream-rgb", colors.background_secondary);
+  setOptionalRgb("--jumpapay-paper-vanilla-rgb", colors.background_tertiary);
+  setOptionalRgb("--jumpapay-line-sand-rgb", colors.stroke_primary);
+  setOptionalRgb("--jumpapay-line-sand-dark-rgb", colors.stroke_secondary);
 }
 
 function setOptionalRgb(key: string, hex: string) {
@@ -390,7 +390,7 @@ export function applyAppearanceTemplate(template: AppearanceTemplate) {
 // di UI). Hardcoded dari inspeksi node_modules/@idds/styles/dist/index.css
 // — update kalau upgrade @idds/styles major version.
 export const AVAILABLE_BRANDS: {
-  value: EppatBrand;
+  value: JumpaPayBrand;
   label: string;
   hint?: string;
   swatch: string;
@@ -405,6 +405,6 @@ export const AVAILABLE_BRANDS: {
   { value: "panrb",   label: "Burgundy",     swatch: "#b42b2d", hint: "Merah burgundy" },
 ];
 
-export function isValidEppatBrand(v: string): v is EppatBrand {
+export function isValidJumpaPayBrand(v: string): v is JumpaPayBrand {
   return AVAILABLE_BRANDS.some((b) => b.value === v);
 }

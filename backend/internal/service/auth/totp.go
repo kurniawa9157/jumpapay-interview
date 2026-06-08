@@ -9,7 +9,7 @@ import (
 )
 
 // TotpIssuer — label yang tampil di aplikasi authenticator (Google Auth, Authy).
-const TotpIssuer = "e-PPAT"
+const TotpIssuer = "JumpaPay"
 
 // TotpSetup — data yang dikirim ke client saat mulai setup 2FA.
 type TotpSetup struct {

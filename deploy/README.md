@@ -1,4 +1,4 @@
-# Deployment e-PPAT — Docker Compose
+# Deployment JumpaPay — Docker Compose
 
 Stack deployment lengkap (PostgreSQL + Redis + backend Go + frontend nginx) dalam satu `docker compose up -d`. Ditujukan untuk VPS Linux (Ubuntu 22.04+) atau server on-premise dengan Docker 24+ dan Docker Compose v2.
 
@@ -49,8 +49,8 @@ docker compose version     # harus v2.x+
 
 ```bash
 # 1. Clone repo
-git clone ssh://git@gitlab.cube-x.dev:2222/kurniawa9157/e-ppat-platform.git
-cd e-ppat-platform/deploy
+git clone ssh://git@gitlab.cube-x.dev:2222/kurniawa9157/jumpapay-platform.git
+cd jumpapay-platform/deploy
 
 # 2. Siapkan env
 cp .env.production.example .env
@@ -84,7 +84,7 @@ Setelah `docker compose ps` menunjukkan `backend` & `frontend` running:
 ## Update deployment
 
 ```bash
-cd e-ppat-platform
+cd jumpapay-platform
 git pull
 
 cd deploy
@@ -95,7 +95,7 @@ docker compose --env-file .env up -d backend frontend
 docker compose --env-file .env run --rm migrate
 ```
 
-Database & Redis tetap persist di volume `eppat_pg_data` dan `eppat_redis_data`.
+Database & Redis tetap persist di volume `jumpapay_pg_data` dan `jumpapay_redis_data`.
 
 ---
 
@@ -107,7 +107,7 @@ Stack ini expose port HTTP (80) saja. Untuk HTTPS, taruh reverse proxy di depan 
 
 Install di host, buat `/etc/caddy/Caddyfile`:
 ```
-eppat.example.com {
+jumpapay.example.com {
     reverse_proxy 127.0.0.1:80
 }
 ```
@@ -129,19 +129,19 @@ Set `HTTP_PORT=8080`, jalankan `cloudflared tunnel` di host yang proxy ke `local
 ### Backup database
 
 ```bash
-docker compose exec -T postgres pg_dump -U eppat eppat > backup-$(date +%F).sql
+docker compose exec -T postgres pg_dump -U jumpapay jumpapay > backup-$(date +%F).sql
 ```
 
 Restore:
 ```bash
-docker compose exec -T postgres psql -U eppat eppat < backup-2026-04-24.sql
+docker compose exec -T postgres psql -U jumpapay jumpapay < backup-2026-04-24.sql
 ```
 
 ### Reset seed super admin
 
 Seed idempotent — untuk re-seed, hapus user `SUPER_ADMIN` dulu:
 ```bash
-docker compose exec postgres psql -U eppat eppat \
+docker compose exec postgres psql -U jumpapay jumpapay \
   -c "DELETE FROM users WHERE code = 'SUPER_ADMIN';"
 docker compose run --rm seed
 ```
@@ -180,7 +180,7 @@ docker compose down -v
 - Frontend nginx proxy `/api/` ke `backend:8080` — kalau origin beda (split deployment), ubah `VITE_API_BASE_URL` ke absolute URL backend
 
 **Migration stuck / dirty**
-- `docker compose run --rm migrate -path=/migrations -database="postgres://eppat:${DB_PASSWORD}@postgres:5432/eppat?sslmode=disable" force <VERSION>`
+- `docker compose run --rm migrate -path=/migrations -database="postgres://jumpapay:${DB_PASSWORD}@postgres:5432/jumpapay?sslmode=disable" force <VERSION>`
 - Lalu `up` ulang
 
 **Seed ingin diganti password-nya**

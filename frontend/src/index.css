@@ -8,7 +8,7 @@
 .rte-content {
   font-size: 0.9375rem;
   line-height: 1.65;
-  color: rgb(var(--eppat-brand-rgb) / 0.95);
+  color: rgb(var(--jumpapay-brand-rgb) / 0.95);
 }
 .rte-content p {
   margin: 0.5rem 0;
@@ -20,20 +20,20 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0.85rem 0 0.5rem;
-  color: rgb(var(--eppat-brand-rgb));
+  color: rgb(var(--jumpapay-brand-rgb));
 }
 .rte-content h3 {
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0.75rem 0 0.4rem;
-  color: rgb(var(--eppat-brand-rgb));
+  color: rgb(var(--jumpapay-brand-rgb));
 }
 .rte-content h4 {
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0.6rem 0 0.3rem;
   letter-spacing: 0.01em;
-  color: rgb(var(--eppat-brand-rgb));
+  color: rgb(var(--jumpapay-brand-rgb));
 }
 .rte-content u { text-decoration: underline; }
 .rte-content ul, .rte-content ol {
@@ -48,19 +48,19 @@
   border-left: 3px solid var(--ina-brand-primary, #0f1e3d);
   padding: 0.25rem 0 0.25rem 0.85rem;
   margin: 0.6rem 0;
-  color: rgb(var(--eppat-brand-rgb) / 0.7);
+  color: rgb(var(--jumpapay-brand-rgb) / 0.7);
   font-style: italic;
 }
 .rte-content code {
-  background: rgb(var(--eppat-paper-cream-rgb) / 0.6);
+  background: rgb(var(--jumpapay-paper-cream-rgb) / 0.6);
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   font-family: ui-monospace, monospace;
   font-size: 0.85em;
 }
 .rte-content pre {
-  background: rgb(var(--eppat-paper-cream-rgb) / 0.7);
-  border: 1px solid rgb(var(--eppat-line-sand-rgb) / 0.8);
+  background: rgb(var(--jumpapay-paper-cream-rgb) / 0.7);
+  border: 1px solid rgb(var(--jumpapay-line-sand-rgb) / 0.8);
   padding: 0.6rem 0.8rem;
   border-radius: 6px;
   overflow-x: auto;
@@ -90,7 +90,7 @@
 .rte-content p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: rgb(var(--eppat-ink-muted-rgb, 100 116 139) / 0.7);
+  color: rgb(var(--jumpapay-ink-muted-rgb, 100 116 139) / 0.7);
   pointer-events: none;
   height: 0;
 }

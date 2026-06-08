@@ -1,7 +1,7 @@
 # CLAUDE.md — Panduan Agent untuk Template Base
 
 > Template foundation: Auth + RBAC + User Management + IDDS Brand Theme.
-> Diekstrak dari project e-PPAT, di-strip ke layer pondasi yang reusable.
+> Diekstrak dari project JumpaPay, di-strip ke layer pondasi yang reusable.
 
 ## Apa ini?
 
@@ -73,8 +73,8 @@ frontend/
 1. **Admin pilih brand** di Pengaturan → PUT `/api/v1/admin/system/theme` → disimpan di `tr_system_settings.brand_theme`
 2. **Public GET** `/api/v1/system/theme` di-fetch di [main.tsx](frontend/src/main.tsx) sebelum mount → `applyBrand(brand)` → set CSS var di `<html>`
 3. **Komponen IDDS** (Button, TextField, Modal, Badge, Alert, Checkbox, SelectDropdown) pakai `var(--ina-*)` internally — otomatis ikut brand
-4. **Custom Tailwind komponen** pakai class `bg-brand`, `text-ink-muted`, dll. Token di [tailwind.config.js](frontend/tailwind.config.js) bridge ke `var(--ina-*)` atau `rgb(var(--eppat-*-rgb) / <alpha-value>)`
-5. **RGB triplet vars** (`--eppat-brand-rgb`, `--eppat-paper-cream-rgb`, dst) diperlukan untuk opacity modifier (`bg-paper-cream/40`) — Tailwind 3.x tidak bisa compose alpha ke `var()` solid
+4. **Custom Tailwind komponen** pakai class `bg-brand`, `text-ink-muted`, dll. Token di [tailwind.config.js](frontend/tailwind.config.js) bridge ke `var(--ina-*)` atau `rgb(var(--jumpapay-*-rgb) / <alpha-value>)`
+5. **RGB triplet vars** (`--jumpapay-brand-rgb`, `--jumpapay-paper-cream-rgb`, dst) diperlukan untuk opacity modifier (`bg-paper-cream/40`) — Tailwind 3.x tidak bisa compose alpha ke `var()` solid
 6. Auto-reload setelah Simpan supaya brand apply konsisten semua area
 
 ### File kunci theme:
@@ -224,4 +224,4 @@ Permission module: **`CONTENT_MGMT`** (single — granular per resource bisa di-
 - **Selalu** dokumentasi di sini saat tambah module permission baru / seed default baru
 
 ---
-Template diekstrak dari project e-PPAT pada 2026-04-26. Update saat extend foundation.
+Template diekstrak dari project JumpaPay pada 2026-04-26. Update saat extend foundation.

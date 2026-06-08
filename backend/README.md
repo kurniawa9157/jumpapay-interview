@@ -1,6 +1,6 @@
-# e-PPAT Backend (Go)
+# JumpaPay Backend (Go)
 
-Backend untuk aplikasi onboarding e-PPAT, ditulis dalam Go 1.22+. Pondasi authentication, user management, dan RBAC mencerminkan project Laravel referensi di `onboarding-peruri`.
+Backend untuk aplikasi onboarding JumpaPay, ditulis dalam Go 1.22+. Pondasi authentication, user management, dan RBAC mencerminkan project Laravel referensi di `onboarding-peruri`.
 
 ## Stack
 
@@ -32,7 +32,7 @@ Prasyarat:
 
 ```bash
 # 1. Buat database
-psql -U postgres -c "CREATE DATABASE eppat;"
+psql -U postgres -c "CREATE DATABASE jumpapay;"
 
 # 2. Copy env
 cp .env.example .env
@@ -72,7 +72,7 @@ Lihat `ARCHITECTURE.md` (akan dibuat di Batch berikut) untuk layout lengkap.
 # Login
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"identifier":"admin@eppat.id","password":"Admin1234!"}'
+  -d '{"identifier":"admin@jumpapay.id","password":"Admin1234!"}'
 
 # Ambil token dari response, lalu:
 curl http://localhost:8080/api/v1/auth/me \

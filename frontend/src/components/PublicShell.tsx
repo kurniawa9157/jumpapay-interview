@@ -20,7 +20,7 @@ interface PublicShellProps extends PublicHeaderProps {
 
 const footerColumns = [
   {
-    title: "e-PPAT",
+    title: "JumpaPay",
     items: [
       "Platform layanan digital akta tanah",
       "Onboarding PPAT & para pihak",
@@ -34,7 +34,7 @@ const footerColumns = [
   {
     title: "Kontak",
     items: [
-      "dukungan@eppat.atrbpn.go.id",
+      "dukungan@jumpapay.atrbpn.go.id",
       "Hari kerja 08.00–17.00 WIB",
       "Kementerian ATR/BPN Republik Indonesia",
     ],
@@ -59,7 +59,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ navItems = [], actio
           </div>
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Portal layanan ATR/BPN</div>
-            <div className="text-lg font-semibold tracking-[-0.02em] text-brand">ePPAT</div>
+            <div className="text-lg font-semibold tracking-[-0.02em] text-brand">JumpaPay</div>
           </div>
         </div>
 
@@ -113,10 +113,10 @@ export const PublicFooter: React.FC = () => (
       </div>
 
       <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-5 text-[12px] text-white/55 md:flex-row md:items-center md:justify-between">
-        <div>Copyright © 2026 ePPAT · Kementerian ATR/BPN</div>
+        <div>Copyright © 2026 JumpaPay · Kementerian ATR/BPN</div>
         <div className="flex flex-col gap-3 text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <span className="inline-flex items-center gap-2 break-all sm:break-normal">
-            <Icon name="mail" size={14} /> dukungan@eppat.atrbpn.go.id
+            <Icon name="mail" size={14} /> dukungan@jumpapay.atrbpn.go.id
           </span>
           <span className="inline-flex items-center gap-2">
             <Icon name="clock" size={14} /> 08.00–17.00 WIB

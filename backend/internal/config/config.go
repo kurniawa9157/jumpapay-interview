@@ -20,7 +20,7 @@ type Config struct {
 	DBPort     int    `env:"DB_PORT" envDefault:"5432"`
 	DBUser     string `env:"DB_USER" envDefault:"postgres"`
 	DBPassword string `env:"DB_PASSWORD,required"`
-	DBName     string `env:"DB_NAME" envDefault:"eppat"`
+	DBName     string `env:"DB_NAME" envDefault:"jumpapay"`
 	DBSSLMode  string `env:"DB_SSLMODE" envDefault:"disable"`
 	DBMaxConns int    `env:"DB_MAX_CONNS" envDefault:"10"`
 
@@ -35,7 +35,7 @@ type Config struct {
 	JWTRefreshTTL time.Duration `env:"JWT_REFRESH_TTL" envDefault:"168h"`
 
 	// Seed super admin (dipakai cmd/seed)
-	SeedAdminEmail    string `env:"SEED_ADMIN_EMAIL" envDefault:"admin@eppat.id"`
+	SeedAdminEmail    string `env:"SEED_ADMIN_EMAIL" envDefault:"admin@jumpapay.id"`
 	SeedAdminPassword string `env:"SEED_ADMIN_PASSWORD" envDefault:"Admin1234!"`
 	SeedAdminName     string `env:"SEED_ADMIN_NAME" envDefault:"Admin ATR/BPN"`
 
