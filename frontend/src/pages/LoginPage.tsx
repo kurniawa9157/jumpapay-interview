@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppearance } from "../appearance";
 import { Icon } from "../components/Icon";
 import { Field, TextInput } from "../components/formKit";
@@ -9,6 +9,32 @@ import { DEFAULT_APPEARANCE_TEMPLATE } from "../types/appearance.types";
 interface Props {
   onBack: () => void;
   onSuccess: (me: MeResponse) => void;
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: { credential?: string }) => void;
+          }) => void;
+          renderButton: (
+            element: HTMLElement,
+            options: {
+              theme?: "outline" | "filled_blue" | "filled_black";
+              size?: "large" | "medium" | "small";
+              type?: "standard" | "icon";
+              text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+              shape?: "rectangular" | "pill" | "circle" | "square";
+              width?: number;
+            },
+          ) => void;
+        };
+      };
+    };
+  }
 }
 
 // Cek apakah response /me punya akses minimal. Super admin bypass; user lain
@@ -42,18 +68,23 @@ const hexToRgba = (hex: string, alpha: number): string => {
 };
 
 export const LoginPage: React.FC<Props> = ({ onBack, onSuccess }) => {
+  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+  const googleClientId = env.VITE_GOOGLE_CLIENT_ID || "";
   const appearance = useAppearance();
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const [step, setStep] = useState<Step>({ kind: "credentials" });
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Dipakai oleh kedua step — setelah dapat token, cek akses + panggil onSuccess.
-  const finishLogin = async () => {
+  const finishLogin = async (requireAdminAccess = true) => {
     const me = await authApi.me();
-    if (!hasAnyAccess(me)) {
+    if (requireAdminAccess && !hasAnyAccess(me)) {
       await authApi.logout();
       setError(
         "Akun Anda belum memiliki hak akses. Hubungi administrator untuk menetapkan peran " +
@@ -62,6 +93,81 @@ export const LoginPage: React.FC<Props> = ({ onBack, onSuccess }) => {
       return;
     }
     onSuccess(me);
+  };
+
+  const handleGoogleToken = async (idToken: string, allowCustomer = true) => {
+    setGoogleSubmitting(true);
+    setError(null);
+    try {
+      await authApi.loginWithGoogle({ id_token: idToken });
+      await finishLogin(!allowCustomer);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Login Google gagal. Silakan coba lagi.");
+    } finally {
+      setGoogleSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current || step.kind !== "credentials") return;
+    let cancelled = false;
+    const renderGoogleButton = () => {
+      if (cancelled || !window.google || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          if (response.credential) {
+            void handleGoogleToken(response.credential);
+          } else {
+            setError("Google tidak mengirim credential. Coba lagi.");
+          }
+        },
+      });
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        text: "continue_with",
+        shape: "rectangular",
+        width: 360,
+      });
+      setGoogleReady(true);
+    };
+
+    if (window.google) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener("load", renderGoogleButton, { once: true });
+      return () => {
+        cancelled = true;
+        existing.removeEventListener("load", renderGoogleButton);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", renderGoogleButton, { once: true });
+    script.addEventListener("error", () => {
+      if (!cancelled) setError("Script Google Sign-In gagal dimuat.");
+    });
+    document.head.appendChild(script);
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", renderGoogleButton);
+    };
+  }, [googleClientId, step.kind]);
+
+  const handleDemoGoogle = () => {
+    void handleGoogleToken("demo:demo.customer@jumpapay.local:Demo Customer");
   };
 
   const handleSubmitCredentials = async (e: React.FormEvent) => {
@@ -201,6 +307,34 @@ export const LoginPage: React.FC<Props> = ({ onBack, onSuccess }) => {
             </p>
 
             <form onSubmit={handleSubmitCredentials} className="mt-6 space-y-4">
+              <div className="space-y-3">
+                {googleClientId ? (
+                  <div
+                    className={googleReady ? "" : "flex h-11 items-center justify-center rounded-md border border-line-sand bg-white text-[12px] text-ink-muted"}
+                    ref={googleButtonRef}
+                  >
+                    {!googleReady && "Memuat Google Sign-In..."}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDemoGoogle}
+                    disabled={googleSubmitting || submitting}
+                    className="inline-flex w-full items-center justify-center gap-3 rounded-md border border-line-sand bg-white px-4 py-3 text-[13px] font-semibold text-ink transition hover:border-brand/40 hover:bg-paper-cream/60 disabled:opacity-60"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-line-sand text-[12px] font-bold text-brand">
+                      G
+                    </span>
+                    {googleSubmitting ? "Memproses Google..." : "Masuk dengan Google Demo"}
+                  </button>
+                )}
+                <div className="flex items-center gap-3 text-[11px] font-semibold uppercase text-ink-muted">
+                  <span className="h-px flex-1 bg-line-sand" />
+                  atau admin
+                  <span className="h-px flex-1 bg-line-sand" />
+                </div>
+              </div>
+
               <Field label="Email" required>
                 <TextInput
                   type="email"

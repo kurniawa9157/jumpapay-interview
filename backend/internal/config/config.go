@@ -11,9 +11,10 @@ import (
 // Config menampung semua env variables yang diperlukan aplikasi.
 type Config struct {
 	// App
-	AppEnv              string `env:"APP_ENV" envDefault:"development"`
-	AppPort             string `env:"APP_PORT" envDefault:"8080"`
-	AppFrontendOrigin   string `env:"APP_FRONTEND_ORIGIN" envDefault:"http://localhost:5173"`
+	AppEnv            string `env:"APP_ENV" envDefault:"development"`
+	AppPort           string `env:"APP_PORT" envDefault:"8080"`
+	AppFrontendOrigin string `env:"APP_FRONTEND_ORIGIN" envDefault:"http://localhost:5173"`
+	GoogleClientID    string `env:"GOOGLE_CLIENT_ID"`
 
 	// Postgres
 	DBHost     string `env:"DB_HOST" envDefault:"127.0.0.1"`
@@ -52,13 +53,13 @@ type Config struct {
 	MediaStorage string `env:"MEDIA_STORAGE" envDefault:"local"`
 
 	// AWS S3 / S3-compatible (MinIO) — hanya dipakai kalau MEDIA_STORAGE=s3.
-	AWSAccessKeyID         string `env:"AWS_ACCESS_KEY_ID"`
-	AWSSecretAccessKey     string `env:"AWS_SECRET_ACCESS_KEY"`
-	AWSDefaultRegion       string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
-	AWSBucket              string `env:"AWS_BUCKET"`
-	AWSEndpoint            string `env:"AWS_ENDPOINT"`
-	AWSURL                 string `env:"AWS_URL"`
-	AWSUsePathStyleEndpoint bool  `env:"AWS_USE_PATH_STYLE_ENDPOINT" envDefault:"false"`
+	AWSAccessKeyID          string `env:"AWS_ACCESS_KEY_ID"`
+	AWSSecretAccessKey      string `env:"AWS_SECRET_ACCESS_KEY"`
+	AWSDefaultRegion        string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
+	AWSBucket               string `env:"AWS_BUCKET"`
+	AWSEndpoint             string `env:"AWS_ENDPOINT"`
+	AWSURL                  string `env:"AWS_URL"`
+	AWSUsePathStyleEndpoint bool   `env:"AWS_USE_PATH_STYLE_ENDPOINT" envDefault:"false"`
 }
 
 // Load membaca .env (opsional) lalu parse env vars ke struct.

@@ -37,6 +37,10 @@ type verify2FARequest struct {
 	Code            string `json:"code" binding:"required,len=6"`
 }
 
+type googleLoginRequest struct {
+	IDToken string `json:"id_token" binding:"required"`
+}
+
 // --- Handler ---
 
 // POST /api/v1/auth/login
@@ -47,6 +51,21 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	result, err := h.svc.Login(c.Request.Context(), req.Identifier, req.Password, clientCtx(c))
+	if err != nil {
+		response.FromDomainError(c, err)
+		return
+	}
+	response.OK(c, result)
+}
+
+// POST /api/v1/auth/google
+func (h *AuthHandler) LoginWithGoogle(c *gin.Context) {
+	var req googleLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, http.StatusBadRequest, "invalid_body", "Isi permintaan tidak valid: "+err.Error())
+		return
+	}
+	result, err := h.svc.LoginWithGoogle(c.Request.Context(), req.IDToken, clientCtx(c))
 	if err != nil {
 		response.FromDomainError(c, err)
 		return

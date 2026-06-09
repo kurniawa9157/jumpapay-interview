@@ -140,6 +140,7 @@ func NewRouter(d Deps) *gin.Engine {
 	{
 		loginLimiter := middleware.RateLimit(d.Redis, "login", d.Cfg.LoginRateLimitPerMinute, time.Minute)
 		authGroup.POST("/login", loginLimiter, authHandler.Login)
+		authGroup.POST("/google", loginLimiter, authHandler.LoginWithGoogle)
 		authGroup.POST("/2fa/verify", loginLimiter, authHandler.Verify2FA)
 		authGroup.POST("/refresh", loginLimiter, authHandler.Refresh)
 

@@ -28,6 +28,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface GoogleLoginRequest {
+  id_token: string;
+}
+
 export interface LoginResponse {
   status: "ok" | "requires_2fa";
   access_token?: string;

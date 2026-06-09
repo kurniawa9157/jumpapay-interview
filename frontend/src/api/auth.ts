@@ -1,9 +1,21 @@
 import { request, tokenStore, ApiError } from "./client";
-import type { LoginRequest, LoginResponse, MeResponse } from "./types";
+import type { GoogleLoginRequest, LoginRequest, LoginResponse, MeResponse } from "./types";
 
 // login — panggil POST /auth/login, simpan tokens ke localStorage kalau status=ok.
 export const login = async (req: LoginRequest): Promise<LoginResponse> => {
   const res = await request<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: req,
+    skipAuth: true,
+  });
+  if (res.status === "ok" && res.access_token && res.refresh_token) {
+    tokenStore.set(res.access_token, res.refresh_token);
+  }
+  return res;
+};
+
+export const loginWithGoogle = async (req: GoogleLoginRequest): Promise<LoginResponse> => {
+  const res = await request<LoginResponse>("/auth/google", {
     method: "POST",
     body: req,
     skipAuth: true,

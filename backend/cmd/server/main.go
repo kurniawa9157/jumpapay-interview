@@ -70,7 +70,7 @@ func main() {
 	// Services
 	jwtSvc := auth.NewJWTService(cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	activitySvc := auth.NewActivityService(activityRepo, logger)
-	authSvc := auth.NewService(userRepo, contactRepo, pwRepo, permRepo, roleRepo, refreshRepo, jwtSvc, activitySvc, logger)
+	authSvc := auth.NewService(userRepo, contactRepo, pwRepo, permRepo, roleRepo, refreshRepo, jwtSvc, activitySvc, logger, cfg.GoogleClientID)
 	permChecker := permission.NewChecker(userRepo, permRepo, rdb, logger)
 	userSvc := userservice.NewService(userRepo, contactRepo, pwRepo, roleRepo, refreshRepo)
 	accountSvc := account.NewService(userRepo, contactRepo, pwRepo, roleRepo, refreshRepo)
